@@ -13,17 +13,30 @@ class DatasetLoader():
 
     def load_data(self):
         data_with_labels = []
+        max_shape = (0,)  # Initialize max shape
+
         for label in self.labels:
             folder = self.main_folder / label
             for file_path in folder.glob('*'):
                 # Assuming the files are numpy arrays
                 numpy_array = DatasetLoader.load_tensor(file_path)
-                data_with_labels.append((numpy_array, label))
-        return data_with_labels
+
+                # Update max shape
+                max_shape = tuple(np.maximum(max_shape, numpy_array.shape))
+
+                data_with_labels.append((numpy_array, label, numpy_array.shape))
+        return data_with_labels, max_shape
 
     def create_dataset(self):
-        data_with_labels = self.load_data()
-        data = [{'data': data, 'label': label} for data, label in data_with_labels]
+        data_with_labels, max_shape = self.load_data()
+        data = []
+        for numpy_array, label, shape in data_with_labels:
+            # Calculate padding dimensions
+            pad_width = [(0, max_dim - cur_dim) if max_dim > cur_dim else (0, 0) for cur_dim, max_dim in zip(shape, max_shape)]
+            
+            # Pad or resize each array to match max_shape
+            padded_array = np.pad(numpy_array, pad_width=pad_width, mode='constant', constant_values=0)
+            data.append({'data': padded_array, 'label': label})
         return pd.DataFrame(data)
     
     @staticmethod

@@ -81,7 +81,7 @@ def main(main_folder, model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Logistic Regression with Dataset Loader")
     parser.add_argument("main_folder", type=str, help="Path to the main folder containing subfolders with images")
-    parser.add_argument("model", type=str, choices=IMPLEMENTED_MODELS, help="Type of model to use for the classification task: 'logistic_regression' or 'svm'")
+    parser.add_argument("model", type=str, choices=IMPLEMENTED_MODELS, help="Type of model to use for the classification task: 'logistic' or 'svm'")
     args = parser.parse_args()
 
     main(args.main_folder, args.model)
