@@ -1,47 +1,73 @@
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import numpy as np
+from utils.data_loader import DatasetLoader  # Import DataLoader class from the data loader module
 
-LABELS = {
-    "": "",
-    "": "",
-}
-DATA = 0
+# Initialize DataLoader instances for each dataset
+training_set = DatasetLoader("folder1")
+validation_set = DatasetLoader("folder2")
+test_set = DatasetLoader("folder3")
 
-# Load your compressed image data (replace with your loading logic)
-X = np.array([image_array for image_array in DATA])  # Assuming shape (800, height, width, channels)
+# Load data from training, validation, and test sets
+train_df = training_set.create_dataframe()
+val_df = validation_set.create_dataframe()
+test_df = test_set.create_dataframe()
 
-# Reshape data (assuming channels as the last dimension)
-X = X.reshape(X.shape[0], -1)  # Flattens to (800, features)
+# Extract features (X) and labels (y) from DataFrames
+X_train, y_train = train_df['data'].tolist(), train_df['label'].tolist()
+X_val, y_val = val_df['data'].tolist(), val_df['label'].tolist()
+X_test, y_test = test_df['data'].tolist(), test_df['label'].tolist()
 
-# Extract labels (replace with your labeling logic)
-y = np.array([label for label in LABELS])
-
-# Split data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Flatten the feature arrays
+X_train_flat = [x.flatten() for x in X_train]
+X_val_flat = [x.flatten() for x in X_val]
+X_test_flat = [x.flatten() for x in X_test]
 
 # Standardize pixel values
 scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+X_train_scaled = scaler.fit_transform(X_train_flat)
+X_val_scaled = scaler.transform(X_val_flat)
+X_test_scaled = scaler.transform(X_test_flat)
 
-# Create and train the SVM model
-model = SVC(kernel='linear')  # Choose an appropriate kernel (e.g., 'rbf' for non-linear data)
-model.fit(X_train, y_train)
+# Define kernel strategies and combinations
+kernel_strategies = ['linear', 'rbf', 'poly']
+degrees = [2, 3]  # Degrees for polynomial kernel
 
-# Make predictions on test data
-y_pred = model.predict(X_test)
-
-# Evaluate model performance (using metrics like accuracy, precision, recall, F1-score)
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
-accuracy = accuracy_score(y_test, y_pred)
-precision = precision_score(y_test, y_pred, average='weighted')
-recall = recall_score(y_test, y_pred, average='weighted')
-f1 = f1_score(y_test, y_pred, average='weighted')
-
-print("Accuracy:", accuracy)
-print("Precision:", precision)
-print("Recall:", recall)
-print("F1-score:", f1)
+# Perform SVM classification with different kernel strategies and combinations
+for kernel in kernel_strategies:
+    if kernel == 'poly':
+        for degree in degrees:
+            model = SVC(kernel=kernel, degree=degree)
+            model.fit(X_train_scaled, y_train)
+            y_val_pred = model.predict(X_val_scaled)
+            y_test_pred = model.predict(X_test_scaled)
+            print(f"Kernel: {kernel}, Degree: {degree}")
+            print("Validation Set Metrics:")
+            print("Accuracy:", accuracy_score(y_val, y_val_pred))
+            print("Precision:", precision_score(y_val, y_val_pred, average='weighted'))
+            print("Recall:", recall_score(y_val, y_val_pred, average='weighted'))
+            print("F1-score:", f1_score(y_val, y_val_pred, average='weighted'))
+            print("\nTest Set Metrics:")
+            print("Accuracy:", accuracy_score(y_test, y_test_pred))
+            print("Precision:", precision_score(y_test, y_test_pred, average='weighted'))
+            print("Recall:", recall_score(y_test, y_test_pred, average='weighted'))
+            print("F1-score:", f1_score(y_test, y_test_pred, average='weighted'))
+            print("--------------------------------------------")
+    else:
+        model = SVC(kernel=kernel)
+        model.fit(X_train_scaled, y_train)
+        y_val_pred = model.predict(X_val_scaled)
+        y_test_pred = model.predict(X_test_scaled)
+        print(f"Kernel: {kernel}")
+        print("Validation Set Metrics:")
+        print("Accuracy:", accuracy_score(y_val, y_val_pred))
+        print("Precision:", precision_score(y_val, y_val_pred, average='weighted'))
+        print("Recall:", recall_score(y_val, y_val_pred, average='weighted'))
+        print("F1-score:", f1_score(y_val, y_val_pred, average='weighted'))
+        print("\nTest Set Metrics:")
+        print("Accuracy:", accuracy_score(y_test, y_test_pred))
+        print("Precision:", precision_score(y_test, y_test_pred, average='weighted'))
+        print("Recall:", recall_score(y_test, y_test_pred, average='weighted'))
+        print("F1-score:", f1_score(y_test, y_test_pred, average='weighted'))
+        print("--------------------------------------------")

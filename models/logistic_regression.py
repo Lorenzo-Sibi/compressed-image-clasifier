@@ -2,49 +2,63 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import numpy as np
+from utils.data_loader import DatasetLoader  # Import DataLoader class from the data loader module
 
-LABELS = {
-    "": "",
-    "": "",
-}
+# Initialize DataLoader instances for each dataset
+training_set = DatasetLoader("folder1")
+validation_set = DatasetLoader("folder2")
+test_set = DatasetLoader("folder3")
 
-DATA = 0
+# Load data from training, validation, and test sets
+train_df = training_set.create_dataframe()
+val_df = validation_set.create_dataframe()
+test_df = test_set.create_dataframe()
 
-# Load your compressed image data (replace with your loading logic)
-X = np.array([image_array for image_array in DATA])  # Assuming shape (800, height, width, channels)
+# Extract features (X) and labels (y) from DataFrames
+X_train, y_train = train_df['data'].tolist(), train_df['label'].tolist()
+X_val, y_val = val_df['data'].tolist(), val_df['label'].tolist()
+X_test, y_test = test_df['data'].tolist(), test_df['label'].tolist()
 
-# Reshape data (flattens (800, features))
-X = X.reshape(X.shape[0], -1)
-
-
-
-# Extract labels (replace with your labeling logic)
-y = np.array([label for label in LABELS])
-
-# Split data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Flatten the feature arrays
+X_train_flat = [x.flatten() for x in X_train]
+X_val_flat = [x.flatten() for x in X_val]
+X_test_flat = [x.flatten() for x in X_test]
 
 # Standardize pixel values
 scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+X_train_scaled = scaler.fit_transform(X_train_flat)
+X_val_scaled = scaler.transform(X_val_flat)
+X_test_scaled = scaler.transform(X_test_flat)
 
 # Create and train the LogisticRegression model
 model = LogisticRegression(solver='lbfgs', multi_class='multinomial')
-model.fit(X_train, y_train)
+model.fit(X_train_scaled, y_train)
 
-# Make predictions on test data
-y_pred = model.predict(X_test)
 
-# Evaluate model performance (using metrics like accuracy, precision, recall, F1-score)
 
-accuracy = accuracy_score(y_test, y_pred)
-precision = precision_score(y_test, y_pred, average='weighted')
-recall = recall_score(y_test, y_pred, average='weighted')
-f1 = f1_score(y_test, y_pred, average='weighted')
+y_val_pred = model.predict(X_val_scaled)
+y_test_pred = model.predict(X_test_scaled)
 
-print("Accuracy:", accuracy)
-print("Precision:", precision)
-print("Recall:", recall)
-print("F1-score:", f1)
+# Here the validation set
+val_accuracy = accuracy_score(y_val, y_val_pred)
+val_precision = precision_score(y_val, y_val_pred, average='weighted')
+val_recall = recall_score(y_val, y_val_pred, average='weighted')
+val_f1 = f1_score(y_val, y_val_pred, average='weighted')
+
+print("Validation Set Metrics:")
+print("Accuracy:", val_accuracy)
+print("Precision:", val_precision)
+print("Recall:", val_recall)
+print("F1-score:", val_f1)
+
+# Evaluation time! :D
+test_accuracy = accuracy_score(y_test, y_test_pred)
+test_precision = precision_score(y_test, y_test_pred, average='weighted')
+test_recall = recall_score(y_test, y_test_pred, average='weighted')
+test_f1 = f1_score(y_test, y_test_pred, average='weighted')
+
+print("\nTest Set Metrics:")
+print("Accuracy:", test_accuracy)
+print("Precision:", test_precision)
+print("Recall:", test_recall)
+print("F1-score:", test_f1)
