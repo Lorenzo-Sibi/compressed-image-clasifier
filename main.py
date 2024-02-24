@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from utils.data_loader import DatasetLoader
 
-from tf.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.applications.resnet50 import ResNet50
 
 IMPLEMENTED_MODELS = ['logistic', 'svm']
 
@@ -62,7 +62,7 @@ def main(main_folder, model):
         print(f"Total entries (flattened): {len(X_flat)}")
 
         X_train, X_test, y_train, y_test = train_test_split(X_flat, y, test_size=0.2, random_state=2, shuffle=True)
-        
+    
         train_logistic_regression(X_train, y_train, X_test, y_test)
         
     if model == "svm":
