@@ -19,14 +19,14 @@ def main(args):
     if args.model == "logistic":
     
         X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total entries (flattened): {len(X_flat)}")
+        print(f"Total samples (flattened): {len(X_flat)}")
         
         train_logistic_regression(X_flat, y)
         
     elif args.model == "svm":
         
         X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total entries (flattened): {len(X_flat)}")
+        print(f"Total samples (flattened): {len(X_flat)}")
         
         train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
     

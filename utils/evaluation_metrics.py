@@ -24,10 +24,10 @@ class ClassificationEvaluator:
         return precision_score(self.y_true, self.y_pred, average='macro')
 
     def recall(self):
-        return recall_score(self.y_true, self.y_pred)
+        return recall_score(self.y_true, self.y_pred, average='macro')
 
     def f1_score(self):
-        return f1_score(self.y_true, self.y_pred)
+        return f1_score(self.y_true, self.y_pred, average='macro')
 
     def roc_curve(self):
         fpr, tpr, _ = roc_curve(self.y_true, self.y_prob)
