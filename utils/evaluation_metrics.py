@@ -21,7 +21,7 @@ class ClassificationEvaluator:
         return accuracy_score(self.y_true, self.y_pred)
 
     def precision(self):
-        return precision_score(self.y_true, self.y_pred)
+        return precision_score(self.y_true, self.y_pred, average='macro')
 
     def recall(self):
         return recall_score(self.y_true, self.y_pred)
