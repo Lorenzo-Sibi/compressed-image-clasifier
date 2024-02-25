@@ -14,19 +14,19 @@ def main(args):
     
     X, y = df.drop('label', axis=1), df['label']
     
-    print(f"Each entry has as feature an array of shape: {X['data'][0].shape}")
+    print(f"Each sample has as feature ('data') an array of shape: {X['data'][0].shape}")
     
     if args.model == "logistic":
     
         X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total samples (flattened): {len(X_flat)}")
+        print(f"Total elements (flattened sample): {len(X_flat)}")
         
         train_logistic_regression(X_flat, y)
         
     elif args.model == "svm":
         
         X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total samples (flattened): {len(X_flat)}")
+        print(f"Total elements (flattened sample): {len(X_flat)}")
         
         train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
     
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     logistic_parser.add_argument("--verbose",default=1, type=int, choices=[0, 1, 2, 3], help="Verbosity level for logistic regression")
 
     # Subparser for support vector machine model
-    svm_parser = subparsers.add_parser('support_vector_machine', help='Support Vector Machine Model')
+    svm_parser = subparsers.add_parser('svm', help='Support Vector Machine Model')
     svm_parser.add_argument("--kernel", type=str, default="rbf" ,choices=["linear", "poly", "rbf", "sigmoid"], help="Kernel type for support vector machine")
     svm_parser.add_argument("--svm_regularization", default=1.0, type=float, help="Regularization parameter (C) for support vector machine")
     svm_parser.add_argument("--svm_tolerance", default=1e-3, type=float, help="Tolerance for support vector machine convergence")
