@@ -35,14 +35,15 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Test Logistic Regression with Dataset Loader")
+    parser = argparse.ArgumentParser(description="Compressed Image Classifier - Using latent Spaces")
+    
     parser.add_argument("main_folder", type=str, help="Path to the main folder containing subfolders with images")
     
     subparsers = parser.add_subparsers(dest='model', help='Select the model to evaluate')
 
     # Subparser for logistic regression model
     logistic_parser = subparsers.add_parser('logistic_regression', help='Logistic Regression Model')
-    logistic_parser.add_argument("--regularization",default="l2", type=float, help="Regularization strength (C) for logistic regression")
+    logistic_parser.add_argument("--regularization", default="l2", type=str, choices=["l1", "l2", "elasticnet"],help="Regularization strength (C) for logistic regression")
     logistic_parser.add_argument("--solver",default="lbfgs", type=str, choices=["newton-cg", "lbfgs", "liblinear", "sag", "saga"], help="Solver for logistic regression")
     logistic_parser.add_argument("--max_iterations",default=100, type=int, help="Maximum number of iterations for logistic regression")
     logistic_parser.add_argument("--tolerance",default=1e-2, type=float, help="Tolerance for logistic regression convergence")
@@ -55,7 +56,6 @@ if __name__ == "__main__":
     svm_parser.add_argument("--svm_tolerance", default=1e-3, type=float, help="Tolerance for support vector machine convergence")
     svm_parser.add_argument("--verbose", default=True, type=bool, help="Verbosity for support vector machine")
 
-    parser.add_argument("model", type=str, choices=IMPLEMENTED_MODELS, help="Type of model to use for the classification task: 'logistic' or 'svm'")
     args = parser.parse_args()
 
     main(args)
