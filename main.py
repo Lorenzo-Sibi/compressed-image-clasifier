@@ -42,7 +42,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest='model', help='Select the model to evaluate')
 
     # Subparser for logistic regression model
-    logistic_parser = subparsers.add_parser('logistic_regression', help='Logistic Regression Model')
+    logistic_parser = subparsers.add_parser('logistic', help='Logistic Regression Model')
     logistic_parser.add_argument("--regularization", default="l2", type=str, choices=["l1", "l2", "elasticnet"],help="Regularization strength (C) for logistic regression")
     logistic_parser.add_argument("--solver",default="lbfgs", type=str, choices=["newton-cg", "lbfgs", "liblinear", "sag", "saga"], help="Solver for logistic regression")
     logistic_parser.add_argument("--max_iterations",default=100, type=int, help="Maximum number of iterations for logistic regression")
