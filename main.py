@@ -28,7 +28,7 @@ def main(args):
         X_flat = [x.flatten() for x in X["data"]]
         print(f"Total entries (flattened): {len(X_flat)}")
         
-        train_svm(X_flat, y)
+        train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
     
     elif args.model == "resnet":
         pass

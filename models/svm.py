@@ -14,7 +14,7 @@ def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
     X_test_scaled = scaler.transform(X_test)
     X_val_scaled = scaler.transform(X_val)
 
-    model = SVC(tol=1e-2, tol=tolerance, verbose=verbose)
+    model = SVC(tol=tolerance, verbose=verbose)
     model.fit(X_train_scaled, y_train)
     
     
