@@ -62,7 +62,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
                 normalized_sample[:, :, i] = normalized_channel
             
             # Append the normalized sample to the list
-            normalized_data.append(normalized_sample.flatten())
+            normalized_data.append(normalized_sample)
 
         # Convert the list of normalized samples back to a DataFrame
         # X_scaled = pd.DataFrame({'data': normalized_data})
