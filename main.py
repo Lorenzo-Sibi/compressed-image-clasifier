@@ -42,18 +42,18 @@ if __name__ == "__main__":
 
     # Subparser for logistic regression model
     logistic_parser = subparsers.add_parser('logistic_regression', help='Logistic Regression Model')
-    logistic_parser.add_argument("--regularization", type=float, help="Regularization strength (C) for logistic regression")
-    logistic_parser.add_argument("--solver", type=str, choices=["newton-cg", "lbfgs", "liblinear", "sag", "saga"], help="Solver for logistic regression")
-    logistic_parser.add_argument("--max_iterations", type=int, help="Maximum number of iterations for logistic regression")
-    logistic_parser.add_argument("--tolerance", type=float, help="Tolerance for logistic regression convergence")
-    logistic_parser.add_argument("--verbosity", type=int, choices=[0, 1, 2, 3], help="Verbosity level for logistic regression")
+    logistic_parser.add_argument("--regularization",default="l2", type=float, help="Regularization strength (C) for logistic regression")
+    logistic_parser.add_argument("--solver",default="lbfgs", type=str, choices=["newton-cg", "lbfgs", "liblinear", "sag", "saga"], help="Solver for logistic regression")
+    logistic_parser.add_argument("--max_iterations",default=100, type=int, help="Maximum number of iterations for logistic regression")
+    logistic_parser.add_argument("--tolerance",default=1e-2, type=float, help="Tolerance for logistic regression convergence")
+    logistic_parser.add_argument("--verbose",default=1, type=int, choices=[0, 1, 2, 3], help="Verbosity level for logistic regression")
 
     # Subparser for support vector machine model
     svm_parser = subparsers.add_parser('support_vector_machine', help='Support Vector Machine Model')
-    svm_parser.add_argument("--kernel", type=str, choices=["linear", "poly", "rbf", "sigmoid"], help="Kernel type for support vector machine")
-    svm_parser.add_argument("--svm_regularization", type=float, help="Regularization parameter (C) for support vector machine")
-    svm_parser.add_argument("--svm_tolerance", type=float, help="Tolerance for support vector machine convergence")
-    svm_parser.add_argument("--svm_verbosity", type=int, choices=[0, 1, 2, 3], help="Verbosity level for support vector machine")
+    svm_parser.add_argument("--kernel", type=str, default="rbf" ,choices=["linear", "poly", "rbf", "sigmoid"], help="Kernel type for support vector machine")
+    svm_parser.add_argument("--svm_regularization", default=1.0, type=float, help="Regularization parameter (C) for support vector machine")
+    svm_parser.add_argument("--svm_tolerance", default=1e-3, type=float, help="Tolerance for support vector machine convergence")
+    svm_parser.add_argument("--verbose", default=True, type=bool, help="Verbosity for support vector machine")
 
     parser.add_argument("model", type=str, choices=IMPLEMENTED_MODELS, help="Type of model to use for the classification task: 'logistic' or 'svm'")
     args = parser.parse_args()
