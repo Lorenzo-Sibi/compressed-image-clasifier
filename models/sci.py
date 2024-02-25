@@ -11,7 +11,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropou
 
 
 class SCI(Model):
-    def __init__(self, input_shape=(32, 32, 3), num_classes=3):  # 32x32 input shape as default (change for latent spaces)
+    def __init__(self, input_shape=(32, 32, 3), num_classes=3):  # 32x32 input shape as default (change for latent spaces) same for num_classes
         super(SCI, self).__init__()
 
         self.convs = tf.keras.Sequential([
@@ -38,7 +38,7 @@ class SCI(Model):
             BatchNormalization(),
             LeakyReLU(),
 
-            Dense(num_classes)
+            Dense(num_classes )
         ])
 
     def call(self, inputs):
