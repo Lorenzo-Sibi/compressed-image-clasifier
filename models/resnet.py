@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.metrics import (
@@ -44,6 +45,12 @@ class ResNetClassifier:
         self.model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
     def train(self, X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1):
+        # Convert NumPy arrays to TensorFlow tensors
+        X_train_tf = tf.convert_to_tensor(X_train)
+        y_train_tf = tf.convert_to_tensor(y_train)
+        X_val_tf = tf.convert_to_tensor(X_val)
+        y_val_tf = tf.convert_to_tensor(y_val)
+        
         early_stopping = EarlyStopping(patience=3, restore_best_weights=True)
 
         history = self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,
