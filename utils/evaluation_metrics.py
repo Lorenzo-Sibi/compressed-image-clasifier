@@ -9,7 +9,6 @@ from sklearn.metrics import (
     auc,
     confusion_matrix,
     classification_report,
-    specificity_score,
     matthews_corrcoef,
 )
 
@@ -42,9 +41,6 @@ class ClassificationEvaluator:
 
     def classification_report(self):
         return classification_report(self.y_true, self.y_pred)
-
-    def specificity(self):
-        return specificity_score(self.y_true, self.y_pred)
 
     def matthews_corrcoef(self):
         return matthews_corrcoef(self.y_true, self.y_pred)
@@ -85,7 +81,6 @@ class ClassificationEvaluator:
         print("\tPrecision:", self.precision())
         print("\tRecall:", self.recall())
         print("\tF1 Score:", self.f1_score())
-        print("\tSpecificity:", self.specificity())
         print("\tMatthews Correlation Coefficient:", self.matthews_corrcoef())
         print("\tClassification Report:")
         print(self.classification_report())
