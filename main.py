@@ -65,7 +65,8 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
             normalized_data.append(normalized_sample.flatten())
 
         # Convert the list of normalized samples back to a DataFrame
-        X_scaled = pd.DataFrame({'data': normalized_data})
+        # X_scaled = pd.DataFrame({'data': normalized_data})
+        X_scaled = normalized_data
         
         X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
         X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
