@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -22,9 +23,9 @@ class ResNetClassifier:
         self.input_shape = input_shape
         self.num_classes = num_classes
         self.model = self.build_model()
-
+        
     def build_model(self):
-        base_model = ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
+        base_model = ResNet50(include_top=False, weights=None, input_shape=self.input_shape)
 
         x = Flatten()(base_model.output)
         x = Dense(512, activation='relu')(x)
@@ -50,19 +51,21 @@ class ResNetClassifier:
 
         return history
 
-    def evaluate(self, X_test, y_test):
-        y_pred = np.argmax(self.model.predict(X_test), axis=-1)
+    def predict(self, X):
+        """
+        Predict class labels for input samples.
+        
+        Parameters:
+        - X: Input data, numpy array of shape (num_samples, height, width, channels).
+        
+        Returns:
+        - y_pred: Predicted class labels (integers), numpy array of shape (num_samples,).
+        """
+        y_pred = np.argmax(self.model.predict(X), axis=-1)
+        return y_pred
+    
 
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='macro')
-        recall = recall_score(y_test, y_pred, average='macro')
-        f1 = f1_score(y_test, y_pred, average='macro')
-        cm = confusion_matrix(y_test, y_pred)
-        cr = classification_report(y_test, y_pred)
-
-        return accuracy, precision, recall, f1, cm, cr
-
-    def plot_training_history(self, history):
+    def plot_training_history(self, history, save_path=Path("./")):
         plt.figure(figsize=(12, 6))
 
         plt.subplot(1, 2, 1)
@@ -84,4 +87,4 @@ class ResNetClassifier:
         plt.grid(True)
 
         plt.tight_layout()
-        plt.show()
+        plt.savefig(save_path)

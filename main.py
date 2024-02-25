@@ -1,37 +1,95 @@
 import argparse
+import numpy as np
+import pandas as pd
+
+from sklearn.discriminant_analysis import StandardScaler
 from models.logistic_regression import train_logistic_regression
+from sklearn.model_selection import train_test_split
 from models.svm import train_svm
+from models.resnet import ResNetClassifier
 from utils.data_loader import DatasetLoader
 from tensorflow.keras.applications.resnet50 import ResNet50
 
-IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet']
+from utils.evaluation_metrics import ClassificationEvaluator
 
-def main(args):
+IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet']
+RANDOM_STATE = 2
+
+def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     data_loader = DatasetLoader(args.main_folder)
 
     # Load data
     df = data_loader.create_dataset()
-    
+
     X, y = df.drop('label', axis=1), df['label']
-    
+
     print(f"Each sample has as feature ('data') an array of shape: {X['data'][0].shape}")
-    
+
     if args.model == "logistic":
-    
+
         X_flat = [x.flatten() for x in X["data"]]
         print(f"Total elements (flattened sample): {len(X_flat)}")
-        
+
         train_logistic_regression(X_flat, y)
-        
+
     elif args.model == "svm":
-        
+
         X_flat = [x.flatten() for x in X["data"]]
         print(f"Total elements (flattened sample): {len(X_flat)}")
-        
+
         train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
-    
+
     elif args.model == "resnet":
-        pass
+        input_shape = X["data"][0].shape
+        num_classes = len(y.unique())
+
+        labels_string = y.unique().tolist()
+        label_to_int = {label: i for i, label in enumerate(labels_string)} # map labels in a dictionary
+
+        y = np.array([label_to_int[label] for label in y]) # convert labels to integers
+        
+        data = X["data"]
+        scaler = StandardScaler()
+        
+        normalized_data = []
+        for sample in data:
+            
+            # Normalize each channel separately
+            normalized_sample = np.zeros_like(sample)
+            for i in range(sample.shape[-1]):
+                channel = sample[:, :, i]
+                normalized_channel = scaler.fit_transform(channel)
+                normalized_sample[:, :, i] = normalized_channel
+            
+            # Append the normalized sample to the list
+            normalized_data.append(normalized_sample.flatten())
+
+        # Convert the list of normalized samples back to a DataFrame
+        X_scaled = pd.DataFrame({'data': normalized_data})
+        
+        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
+        X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
+
+        resnet = ResNetClassifier(input_shape=input_shape, num_classes=num_classes)
+        resnet.compile_model()
+        
+        # training...
+        history = resnet.train(X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1)
+        
+        y_test_pred = resnet.predict(X_test)
+        y_val_pred = resnet.predict(X_val)
+
+        val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
+        print("ResNet\nValidation Set metrics:")
+        val_evaluator.print_metrics()
+
+        test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
+        print("ResNet\nTest Set metrics:")
+        test_evaluator.print_metrics()
+        
+        # Plot training history
+        resnet.plot_training_history(history)
+        
 
 
 if __name__ == "__main__":
@@ -56,6 +114,9 @@ if __name__ == "__main__":
     svm_parser.add_argument("--svm_tolerance", default=1e-3, type=float, help="Tolerance for support vector machine convergence")
     svm_parser.add_argument("--verbose", default=True, type=bool, help="Verbosity for support vector machine")
 
+    # Subparser for resnet model
+    resnet_parser = subparsers.add_parser('resnet', help='ResNet Model')
+    
     args = parser.parse_args()
 
     main(args)
