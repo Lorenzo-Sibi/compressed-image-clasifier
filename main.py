@@ -6,6 +6,7 @@ from sklearn.discriminant_analysis import StandardScaler
 from models.logistic_regression import train_logistic_regression
 from sklearn.model_selection import train_test_split
 from models.svm import train_svm
+from models.random_forest import RandomForestModel
 from models.resnet import ResNetClassifier
 from utils.data_loader import DatasetLoader
 from tensorflow.keras.applications.resnet50 import ResNet50
@@ -38,6 +39,33 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         print(f"Total elements (flattened sample): {len(X_flat)}")
 
         train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
+    
+    elif args.model == "random_forest":
+        
+        X_flat = [x.flatten() for x in X["data"]]
+        print(f"Total elements (flattened sample): {len(X_flat)}")
+        
+        X_train, X_test, y_train, y_test = train_test_split(X_flat, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
+        X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
+        
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        X_val_scaled = scaler.transform(X_val)
+        
+        random_forest = RandomForestModel()
+        random_forest.train(X_train_scaled, y_train, n_estimators=args.n_estimators)
+        
+        y_val_pred = random_forest.predict(X_val_scaled)
+        y_test_pred = random_forest.predict(X_test_scaled)
+        
+        val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
+        print(f"Random Forest\nModel's parameters:\n{random_forest.get_param()}\nValidation Set metrics:")
+        val_evaluator.print_metrics()
+        
+        test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
+        print("\nTest Set metrics:")
+        test_evaluator.print_metrics()
 
     elif args.model == "resnet":
         input_shape = X["data"][0].shape
@@ -114,6 +142,12 @@ if __name__ == "__main__":
     svm_parser.add_argument("--svm_regularization", default=1.0, type=float, help="Regularization parameter (C) for support vector machine")
     svm_parser.add_argument("--svm_tolerance", default=1e-3, type=float, help="Tolerance for support vector machine convergence")
     svm_parser.add_argument("--verbose", default=True, type=bool, help="Verbosity for support vector machine")
+
+    # Subparser for random forest model
+    random_forest_parser = subparsers.add_parser('random_forest', help='Random Forest Model')
+    random_forest_parser.add_argument("--n_estimators", default=100, type=int, help="Number of trees in the random forest")
+    random_forest_parser.add_argument("--max_depth", default=None, type=int, help="Maximum depth of the tree")
+    random_forest_parser.add_argument("--min_samples_split", default=2, type=int, help="Minimum number of samples required to split an internal node")
 
     # Subparser for resnet model
     resnet_parser = subparsers.add_parser('resnet', help='ResNet Model')
