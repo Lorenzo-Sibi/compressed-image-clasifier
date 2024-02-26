@@ -3,8 +3,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 class RandomForestModel:
-    def __init__(self, num_estimators=100, max_depth=2, min_samples_split=2, min_samples_leaf=1,
-                 bootstrap=True, oob_score=True, n_jobs=1, random_state=2):
+    def __init__(self, num_estimators=100, max_depth=2, min_samples_split=2, random_state=2):
         self.num_estimators = num_estimators
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split

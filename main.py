@@ -1,6 +1,5 @@
 import argparse
 import numpy as np
-import pandas as pd
 
 from sklearn.discriminant_analysis import StandardScaler
 from models.logistic_regression import train_logistic_regression
@@ -53,8 +52,8 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         X_test_scaled = scaler.transform(X_test)
         X_val_scaled = scaler.transform(X_val)
         
-        random_forest = RandomForestModel()
-        random_forest.train(X_train_scaled, y_train, n_estimators=args.n_estimators)
+        random_forest = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
+        random_forest.train(X_train_scaled, y_train)
         
         y_val_pred = random_forest.predict(X_val_scaled)
         y_test_pred = random_forest.predict(X_test_scaled)
