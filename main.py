@@ -59,7 +59,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         y_test_pred = random_forest.predict(X_test_scaled)
         
         val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
-        print(f"Random Forest\nModel's parameters:\n{random_forest.get_param()}\nValidation Set metrics:")
+        print(f"Random Forest\nModel's parameters:\n{random_forest.get_params()}\nValidation Set metrics:")
         val_evaluator.print_metrics()
         
         test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
