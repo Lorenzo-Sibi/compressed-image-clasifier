@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from more_itertools import tabulate
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -22,6 +22,8 @@ def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
         print(f"Kernel: {model.kernel}, Degree: {model.degree}")
     else:
         print(f"Kernel: {model.kernel}")
+        
+    print_params(model)
     
     y_test_pred = model.predict(X_test_scaled)
     print("Support Vector Machine\nValidation Set metrics:")
@@ -33,3 +35,8 @@ def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
     test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
     print("Support Vector Machine\nTest Set metrics:")
     test_evaluator.print_metrics()
+    
+def print_params(model):
+    params = model.get_params()
+    param_table = list(params.items())
+    print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))

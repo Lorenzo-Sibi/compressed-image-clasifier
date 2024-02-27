@@ -1,3 +1,4 @@
+from tabulate import tabulate
 from utils.evaluation_metrics import ClassificationEvaluator
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -21,6 +22,8 @@ def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     y_test_pred = model.predict(X_test_scaled)
     y_val_pred = model.predict(X_val_scaled)
 
+    print_params(model)
+    
     val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
     print("Logistic Regression\nValidation Set metrics:")
     val_evaluator.print_metrics()
@@ -28,3 +31,8 @@ def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
     print("Logistic Regression\nTest Set metrics:")
     test_evaluator.print_metrics()
+
+def print_params(model):
+    params = model.get_params()
+    param_table = list(params.items())
+    print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
