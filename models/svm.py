@@ -1,4 +1,4 @@
-from more_itertools import tabulate
+from tabulate import tabulate
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
