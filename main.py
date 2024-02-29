@@ -137,6 +137,7 @@ if __name__ == "__main__":
     logistic_parser.add_argument("--max_iterations", default=100, type=int, help="Maximum number of iterations for logistic regression")
     logistic_parser.add_argument("--tolerance", default=1e-2, type=float, help="Tolerance for logistic regression convergence")
     logistic_parser.add_argument("--verbose", default=1, type=int, choices=[0, 1, 2, 3], help="Verbosity level for logistic regression")
+    logistic_parser.add_argument("--plot-roc", default=False, type=bool, help="")
 
     # Subparser for support vector machine model
     svm_parser = subparsers.add_parser('svm', help='Support Vector Machine Model')
@@ -144,12 +145,14 @@ if __name__ == "__main__":
     svm_parser.add_argument("--svm_regularization", default=1.0, type=float, help="Regularization parameter (C) for support vector machine")
     svm_parser.add_argument("--svm_tolerance", default=1e-3, type=float, help="Tolerance for support vector machine convergence")
     svm_parser.add_argument("--verbose", default=True, type=bool, help="Verbosity for support vector machine")
+    svm_parser.add_argument("--plot-roc", default=False, type=bool, help="")
 
     # Subparser for random forest model
     random_forest_parser = subparsers.add_parser('random_forest', help='Random Forest Model')
     random_forest_parser.add_argument("--n_estimators", default=100, type=int, help="Number of trees in the random forest")
     random_forest_parser.add_argument("--max_depth", default=None, type=int, help="Maximum depth of the tree")
     random_forest_parser.add_argument("--min_samples_split", default=2, type=int, help="Minimum number of samples required to split an internal node")
+    random_forest_parser.add_argument("--plot-roc", default=False, type=bool, help="")
 
     # Subparser for resnet model
     resnet_parser = subparsers.add_parser('resnet', help='ResNet Model')

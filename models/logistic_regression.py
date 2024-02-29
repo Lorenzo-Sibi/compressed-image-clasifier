@@ -16,7 +16,7 @@ def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     X_test_scaled = scaler.transform(X_test)
     X_val_scaled = scaler.transform(X_val)
 
-    model = LogisticRegression(tol=1e-3, verbose=True)
+    model = LogisticRegression(tol=1e-3, verbose=True, random_state=RANDOM_STATE)
     model.fit(X_train_scaled, y_train)
 
     y_test_pred = model.predict(X_test_scaled)
