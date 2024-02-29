@@ -1,3 +1,4 @@
+from tabulate import tabulate
 from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -23,3 +24,8 @@ class RandomForestModel:
 
     def get_params(self):
         return self.model.get_params()
+    
+    def print_params(self):
+        params = self.get_params()
+        param_table = list(params.items())
+        print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))

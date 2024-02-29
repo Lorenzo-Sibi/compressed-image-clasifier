@@ -22,14 +22,15 @@ def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     y_test_pred = model.predict(X_test_scaled)
     y_val_pred = model.predict(X_val_scaled)
 
+    print("\nLogistic Regression Model:\n")
     print_params(model)
     
     val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
-    print("Logistic Regression\nValidation Set metrics:")
+    print("\nValidation Set metrics:")
     val_evaluator.print_metrics()
     
     test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
-    print("Logistic Regression\nTest Set metrics:")
+    print("\nTest Set metrics:")
     test_evaluator.print_metrics()
 
 def print_params(model):

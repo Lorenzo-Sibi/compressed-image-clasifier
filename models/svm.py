@@ -23,17 +23,18 @@ def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
     else:
         print(f"Kernel: {model.kernel}")
         
-    print_params(model)
-    
     y_test_pred = model.predict(X_test_scaled)
-    print("Support Vector Machine\nValidation Set metrics:")
     y_val_pred = model.predict(X_val_scaled)
+    
+    print("\Support Vector Machine Model:\n")
+    print_params(model)
 
     val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
+    print("\nValidation Set metrics:")
     val_evaluator.print_metrics()
     
     test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
-    print("Support Vector Machine\nTest Set metrics:")
+    print("\nTest Set metrics:")
     test_evaluator.print_metrics()
     
 def print_params(model):
