@@ -91,4 +91,3 @@ class ClassificationEvaluator:
         print(self.confusion_matrix())
         print("\n")
         self.plot_confusion_matrix(output_path=Path(output_path, f"confusion-matrix-{title}"))
-        self.plot_roc_curve(output_path=Path(output_path, f"roc-curve-{title}"))
