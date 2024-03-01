@@ -80,7 +80,6 @@ class ClassificationEvaluator:
         plt.savefig(output_path)
 
     def print_metrics(self, title:str, output_path="./"):
-        output_path = Path(output_path, title)
         print("\tAccuracy:", self.accuracy())
         print("\tPrecision:", self.precision())
         print("\tRecall:", self.recall())
@@ -91,5 +90,5 @@ class ClassificationEvaluator:
         print("\tConfusion Matrix:")
         print(self.confusion_matrix())
         print("\n")
-        self.plot_confusion_matrix(output_path=Path(output_path, "confusion-matrix-", title))
-        self.plot_roc_curve(output_path=Path(output_path, "roc-curve-", title))
+        self.plot_confusion_matrix(output_path=Path(output_path, f"confusion-matrix-{title}"))
+        self.plot_roc_curve(output_path=Path(output_path, f"roc-curve-{title}"))
