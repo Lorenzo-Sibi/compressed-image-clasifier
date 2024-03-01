@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score,
@@ -45,7 +46,7 @@ class ClassificationEvaluator:
     def matthews_corrcoef(self):
         return matthews_corrcoef(self.y_true, self.y_pred)
 
-    def plot_roc_curve(self):
+    def plot_roc_curve(self, output_path=Path("./")):
         fpr, tpr = self.roc_curve()
         plt.figure(figsize=(8, 6))
         plt.plot(fpr, tpr, color='blue', lw=2, label='ROC curve (AUC = {:.2f})'.format(self.auc_score()))
@@ -55,9 +56,10 @@ class ClassificationEvaluator:
         plt.title('Receiver Operating Characteristic (ROC) Curve')
         plt.legend(loc='lower right')
         plt.grid(True)
-        plt.show()
+        plt.tight_layout()
+        plt.savefig(output_path)
 
-    def plot_confusion_matrix(self, labels=None):
+    def plot_confusion_matrix(self, output_path=Path("./"), labels=None):
         cm = self.confusion_matrix()
         if labels is None:
             labels = np.unique(self.y_true)
@@ -74,9 +76,11 @@ class ClassificationEvaluator:
         for i in range(len(labels)):
             for j in range(len(labels)):
                 plt.text(j, i, format(cm[i, j], 'd'), horizontalalignment="center", color="white" if cm[i, j] > cm.max() / 2 else "black")
-        plt.show()
+        plt.tight_layout()
+        plt.savefig(output_path)
 
-    def print_metrics(self):
+    def print_metrics(self, title:str, output_path="./"):
+        output_path = Path(output_path, title)
         print("\tAccuracy:", self.accuracy())
         print("\tPrecision:", self.precision())
         print("\tRecall:", self.recall())
@@ -87,3 +91,5 @@ class ClassificationEvaluator:
         print("\tConfusion Matrix:")
         print(self.confusion_matrix())
         print("\n")
+        self.plot_confusion_matrix(output_path=Path(output_path, "confusion-matrix-", title))
+        self.plot_roc_curve(output_path=Path(output_path, "roc-curve-", title))

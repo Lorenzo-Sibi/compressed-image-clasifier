@@ -31,11 +31,11 @@ def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
 
     val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
     print("\nValidation Set metrics:")
-    val_evaluator.print_metrics()
+    val_evaluator.print_metrics(title="validation")
     
     test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
     print("\nTest Set metrics:")
-    test_evaluator.print_metrics()
+    test_evaluator.print_metrics(title="test")
     
 def print_params(model):
     params = model.get_params()

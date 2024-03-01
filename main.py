@@ -58,16 +58,16 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         y_val_pred = random_forest.predict(X_val_scaled)
         y_test_pred = random_forest.predict(X_test_scaled)
         
-        print("\Random Forest:\n")
+        print("\nRandom Forest Model:\n")
         random_forest.print_params()
         
         val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
         print("\nValidation Set metrics:")
-        val_evaluator.print_metrics()
+        val_evaluator.print_metrics(title="validation")
         
         test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
         print("\nTest Set metrics:")
-        test_evaluator.print_metrics()
+        test_evaluator.print_metrics(title="test")
 
     elif args.model == "resnet":
         input_shape = X["data"][0].shape
@@ -112,11 +112,11 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
 
         val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
         print("ResNet\nValidation Set metrics:")
-        val_evaluator.print_metrics()
+        val_evaluator.print_metrics(title="validation")
 
         test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
         print("ResNet\nTest Set metrics:")
-        test_evaluator.print_metrics()
+        test_evaluator.print_metrics(title="test")
         
         # Plot training history
         resnet.plot_training_history(history)
