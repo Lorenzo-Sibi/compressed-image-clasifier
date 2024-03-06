@@ -16,7 +16,7 @@ IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet']
 RANDOM_STATE = 2
 
 def main(args):  # sourcery skip: extract-duplicate-method, extract-method
-    data_loader = DatasetLoader(args.main_folder)
+    data_loader = DatasetLoader(args.dataset_path)
 
     # Load data
     df = data_loader.create_dataset()
@@ -126,9 +126,16 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compressed Image Classifier - Using latent Spaces")
     
-    parser.add_argument("main_folder", type=str, help="Path to the main folder containing subfolders with images")
     
-    subparsers = parser.add_subparsers(dest='model', help='Select the model to evaluate')
+    parser.add_argument("dataset_path", type=str, help="Path to the main folder containing the dataset (each subfolder shoud represents the relative class)")
+    parser.add_argument("model_path", default = "./", help="Path where to save/load the trained model.")
+    
+    # TODO: implement the train command, each model shoud be avaiable for training with its specific parameters.
+    train_cmd = parser.add_subparsers("train")
+    train_cmd.add_argument("model", default="logistic")
+    
+    
+    subparsers = parser.add_subparsers(dest='model', help='Select the model to train/load/evaluate')
 
     # Subparser for logistic regression model
     logistic_parser = subparsers.add_parser('logistic', help='Logistic Regression Model')
