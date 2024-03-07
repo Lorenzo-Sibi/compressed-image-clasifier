@@ -19,9 +19,10 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     data_loader = DatasetLoader(args.dataset_path)
 
     # Load data
-    df = data_loader.create_dataset()
-
-    X, y = df.drop('label', axis=1), df['label']
+    df = data_loader.load_dataset()
+    
+    X, y = df
+    
 
     print(f"Each sample has as feature ('data') an array of shape: {X['data'][0].shape}")
 
@@ -131,8 +132,8 @@ if __name__ == "__main__":
     parser.add_argument("model_path", default = "./", help="Path where to save/load the trained model.")
     
     # TODO: implement the train command, each model shoud be avaiable for training with its specific parameters.
-    train_cmd = parser.add_subparsers("train")
-    train_cmd.add_argument("model", default="logistic")
+    # train_cmd = parser.add_subparsers("train")
+    # train_cmd.add_argument("model", default="logistic")
     
     
     subparsers = parser.add_subparsers(dest='model', help='Select the model to train/load/evaluate')
