@@ -44,7 +44,7 @@ class ResNetClassifier:
         optimizer = Adam(learning_rate=learning_rate)
         self.model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    def train(self, X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1):
+    def fit(self, X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1):
         # Convert NumPy arrays to TensorFlow tensors
         X_train = tf.convert_to_tensor(X_train)
         y_train = tf.convert_to_tensor(y_train)

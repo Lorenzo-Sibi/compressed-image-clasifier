@@ -16,17 +16,6 @@ from utils.evaluation_metrics import ClassificationEvaluator
 IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet']
 RANDOM_STATE = 2
 
-def instantiate_model(args):
-    model = args.model
-    assert model in IMPLEMENTED_MODELS, "Model not implemented yet"
-    
-    if model == "logistic":
-        return get_model_logistic(args)
-    elif model == "svm":
-        return get_model_svm(args)
-    elif model == "random_forest":
-        return RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
-
 def train(train_set, model, args):
     X_train, y_train = train_set.drop("label", axis=1), train_set['label']
     
@@ -84,6 +73,8 @@ def test(test_set, model, args):
 
         # Convert the list of normalized samples back to a DataFrame
         X_test = normalized_data
+        
+    print("Data normalized")
     
     y_test_pred = model.predict(X_test)
     evaluator = ClassificationEvaluator(y_test, y_test_pred)
@@ -112,7 +103,22 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     if operation == "train":
         print("Training...")
         
-        model = instantiate_model(args)
+        assert args.model in IMPLEMENTED_MODELS, "Model not implemented yet"
+        
+        if args.model == "logistic":
+            model = get_model_logistic(args)
+        elif args.model == "svm":
+            model = get_model_svm(args)
+        elif args.model == "random_forest":
+            model = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
+        elif args.model == "resnet":
+            
+            input_shape = df["data"][0].shape
+            num_classes = len(y.unique())
+            
+            model = ResNetClassifier(input_shape=input_shape, num_classes=num_classes)
+            model.compile_model()
+            
         trained_model = train(df_training ,model, args)
         
         model_path = model_path / str(args.model)
@@ -126,13 +132,14 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
             
         print("Testing...")
         
-        y_pred, evaluator = test(df_training, loaded_model, args)
+        y_pred, evaluator = test(df_testing, loaded_model, args)
         evaluator.print_metrics(title=f"{str(args.model)}-metrics")
         
     elif operation == "predict":
         pass
 
     elif args.model == "resnet":
+        
         input_shape = df["data"][0].shape
         num_classes = len(y.unique())
 
@@ -164,11 +171,12 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
         X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
 
+
         resnet = ResNetClassifier(input_shape=input_shape, num_classes=num_classes)
         resnet.compile_model()
         
         # training...
-        history = resnet.train(X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1)
+        history = resnet.fit(X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1)
         
         y_test_pred = resnet.predict(X_test)
         y_val_pred = resnet.predict(X_val)
