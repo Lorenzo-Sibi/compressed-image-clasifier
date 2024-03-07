@@ -1,10 +1,11 @@
 import argparse
+from pathlib import Path
 import numpy as np
-
+import pickle
 from sklearn.discriminant_analysis import StandardScaler
-from models.logistic_regression import train_logistic_regression
+from models.logistic_regression import train_logistic_regression, get_model_logistic
 from sklearn.model_selection import train_test_split
-from models.svm import train_svm
+from models.svm import train_svm, get_model_svm
 from models.random_forest import RandomForestModel
 from models.resnet import ResNetClassifier
 from utils.data_loader import DatasetLoader
@@ -15,62 +16,124 @@ from utils.evaluation_metrics import ClassificationEvaluator
 IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet']
 RANDOM_STATE = 2
 
+def instantiate_model(args):
+    model = args.model
+    assert model in IMPLEMENTED_MODELS, "Model not implemented yet"
+    
+    if model == "logistic":
+        return get_model_logistic(args)
+    elif model == "svm":
+        return get_model_svm(args)
+    elif model == "random_forest":
+        return RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
+
+def train(train_set, model, args):
+    X_train, y_train = train_set.drop("label", axis=1), train_set['label']
+    
+    scaler = StandardScaler()
+    
+    if args.model in ("logistic", 'svm'):
+        X_train = [x.flatten() for x in X_train["data"]]
+        print(f"Total elements (flattened sample): {len(X_train)}")
+        X_train = scaler.fit_transform(X_train)
+    
+    else:
+        normalized_data = []
+        for sample in X_train['data']:
+            
+            # Normalize each channel separately
+            normalized_sample = np.zeros_like(sample)
+            for i in range(sample.shape[-1]):
+                channel = sample[:, :, i]
+                normalized_channel = scaler.fit_transform(channel)
+                normalized_sample[:, :, i] = normalized_channel
+            
+            # Append the normalized sample to the list
+            normalized_data.append(normalized_sample)
+
+        # Convert the list of normalized samples back to a DataFrame
+        X_train = normalized_data
+
+    print("normalizzato")
+    
+    model.fit(X_train, y_train)
+    return model
+
+def test(test_set, model, args):
+    X_test, y_test = test_set.drop("label", axis=1), test_set['label']
+    
+    scaler = StandardScaler()
+    
+    if args.model in ("logistic", 'svm'):
+        X_test = [x.flatten() for x in X_test["data"]]
+        X_test = scaler.fit_transform(X_test)
+    
+    else:
+        normalized_data = []
+        for sample in X_test['data']:
+            
+            # Normalize each channel separately
+            normalized_sample = np.zeros_like(sample)
+            for i in range(sample.shape[-1]):
+                channel = sample[:, :, i]
+                normalized_channel = scaler.fit_transform(channel)
+                normalized_sample[:, :, i] = normalized_channel
+            
+            # Append the normalized sample to the list
+            normalized_data.append(normalized_sample)
+
+        # Convert the list of normalized samples back to a DataFrame
+        X_test = normalized_data
+    
+    y_test_pred = model.predict(X_test)
+    evaluator = ClassificationEvaluator(y_test, y_test_pred)
+
+    return (y_test_pred, evaluator)
+
+def evaluate():
+    pass
+
 def main(args):  # sourcery skip: extract-duplicate-method, extract-method
-    data_loader = DatasetLoader(args.dataset_path)
+    
+    operation = args.operation
+    dataset_path = args.dataset_path
+    model_path = Path(args.model_path)
+    
+    data_loader = DatasetLoader(dataset_path)
 
     # Load data
     df = data_loader.create_dataset()
-
-    X, y = df.drop('label', axis=1), df['label']
-
-    print(f"Each sample has as feature ('data') an array of shape: {X['data'][0].shape}")
-
-    if args.model == "logistic":
-
-        X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total elements (flattened sample): {len(X_flat)}")
-
-        train_logistic_regression(X_flat, y)
-
-    elif args.model == "svm":
-
-        X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total elements (flattened sample): {len(X_flat)}")
-
-        train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
+    # X, y = df.drop('label', axis=1), df['label']
+    df_training, df_testing = DatasetLoader.split_dataset(df, 0.2, shuffle=True, random_state=2)
+    print(f"Each sample has as feature ('data') an array of shape: {df['data'][0].shape}")
+    print(df_training[:5])
     
-    elif args.model == "random_forest":
+
+    if operation == "train":
+        print("Training...")
         
-        X_flat = [x.flatten() for x in X["data"]]
-        print(f"Total elements (flattened sample): {len(X_flat)}")
+        model = instantiate_model(args)
+        trained_model = train(df_training ,model, args)
         
-        X_train, X_test, y_train, y_test = train_test_split(X_flat, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
-        X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
+        model_path = model_path / str(args.model)
+        with model_path.open('wb') as fp:
+            pickle.dump(trained_model, fp)
         
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        X_val_scaled = scaler.transform(X_val)
+    elif operation == "test":
+        # load the model from disk
+        with model_path.open("rb") as fp:
+            loaded_model = pickle.load(fp)
+            
+        print("Testing...")
         
-        random_forest = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
-        random_forest.train(X_train_scaled, y_train)
+        y_pred, evaluator = test(df_training, loaded_model, args)
+        evaluator.print_metrics(title=f"{str(args.model)}-metrics", output_path=str(model_path))
         
-        y_val_pred = random_forest.predict(X_val_scaled)
-        y_test_pred = random_forest.predict(X_test_scaled)
-        
-        print("\nRandom Forest Model:\n")
-        random_forest.print_params()
-        
-        val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
-        print("\nValidation Set metrics:")
-        val_evaluator.print_metrics(title="random-forest-validation")
-        
-        test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
-        print("\nTest Set metrics:")
-        test_evaluator.print_metrics(title="random-forest-test")
+    elif operation == "predict":
+        pass
 
     elif args.model == "resnet":
-        input_shape = X["data"][0].shape
+        input_shape = df["data"][0].shape
         num_classes = len(y.unique())
 
         labels_string = y.unique().tolist()
@@ -78,7 +141,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
 
         y = np.array([label_to_int[label] for label in y]) # convert labels to integers
         
-        data = X["data"]
+        data = df["data"]
         scaler = StandardScaler()
         
         normalized_data = []
@@ -126,16 +189,11 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compressed Image Classifier - Using latent Spaces")
     
-    
+    parser.add_argument("operation", help="Operation to compute: train, test, evaluation, predict")
+    subparsers = parser.add_subparsers(dest='model', help='Select the model to train/load/evaluate')
     parser.add_argument("dataset_path", type=str, help="Path to the main folder containing the dataset (each subfolder shoud represents the relative class)")
     parser.add_argument("model_path", default = "./", help="Path where to save/load the trained model.")
     
-    # TODO: implement the train command, each model shoud be avaiable for training with its specific parameters.
-    train_cmd = parser.add_subparsers("train")
-    train_cmd.add_argument("model", default="logistic")
-    
-    
-    subparsers = parser.add_subparsers(dest='model', help='Select the model to train/load/evaluate')
 
     # Subparser for logistic regression model
     logistic_parser = subparsers.add_parser('logistic', help='Logistic Regression Model')
@@ -167,3 +225,48 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
+
+
+# if args.model == "logistic":
+
+#         X_flat = [x.flatten() for x in X["data"]]
+#         print(f"Total elements (flattened sample): {len(X_flat)}")
+
+#         train_logistic_regression(X_flat, y)
+
+#     elif args.model == "svm":
+
+#         X_flat = [x.flatten() for x in X["data"]]
+#         print(f"Total elements (flattened sample): {len(X_flat)}")
+
+#         train_svm(X_flat, y, tolerance=args.svm_tolerance, verbose=args.verbose)
+    
+#     elif args.model == "random_forest":
+        
+#         X_flat = [x.flatten() for x in X["data"]]
+#         print(f"Total elements (flattened sample): {len(X_flat)}")
+        
+#         X_train, X_test, y_train, y_test = train_test_split(X_flat, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
+#         X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
+        
+#         scaler = StandardScaler()
+#         X_train_scaled = scaler.fit_transform(X_train)
+#         X_test_scaled = scaler.transform(X_test)
+#         X_val_scaled = scaler.transform(X_val)
+        
+#         random_forest = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
+#         random_forest.train(X_train_scaled, y_train)
+        
+#         y_val_pred = random_forest.predict(X_val_scaled)
+#         y_test_pred = random_forest.predict(X_test_scaled)
+        
+#         print("\nRandom Forest Model:\n")
+#         random_forest.print_params()
+        
+#         val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
+#         print("\nValidation Set metrics:")
+#         val_evaluator.print_metrics(title="random-forest-validation")
+        
+#         test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
+#         print("\nTest Set metrics:")
+#         test_evaluator.print_metrics(title="random-forest-test")

@@ -4,6 +4,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from utils.evaluation_metrics import ClassificationEvaluator  # Import DataLoader class from the data loader module
 
+def get_model_svm(args):
+    model = SVC(tol=args.svm_tolerance, verbose=args.verbose, random_state=2)
+    return model
+
 def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True, random_state=2)
