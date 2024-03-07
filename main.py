@@ -127,7 +127,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         print("Testing...")
         
         y_pred, evaluator = test(df_training, loaded_model, args)
-        evaluator.print_metrics(title=f"{str(args.model)}-metrics", output_path=str(model_path))
+        evaluator.print_metrics(title=f"{str(args.model)}-metrics")
         
     elif operation == "predict":
         pass
