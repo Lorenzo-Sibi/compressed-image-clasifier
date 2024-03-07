@@ -6,9 +6,17 @@ from sklearn.preprocessing import StandardScaler
 
 RANDOM_STATE = 2
 
-def get_model_logistic(args):
-    model = LogisticRegression(tol=args.tolerance, verbose=args.verbose, random_state=RANDOM_STATE)
-    return model
+class LogisticRegressionWrapper():
+    def __init__(self, args):
+        self.model = LogisticRegression(tol=args.tolerance, verbose = args.verbose, random_state=RANDOM_STATE)
+    
+    def fit(self, X_train, y_train, args):
+        self.model.fit(X_train, y_train)
+        
+    def print_params(self):
+        params = self.model.get_params()
+        param_table = list(params.items())
+        print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
 
 def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     

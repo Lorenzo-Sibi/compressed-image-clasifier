@@ -16,7 +16,7 @@ class RandomForestModel:
             random_state=random_state,
         )
 
-    def train(self, X_train, y_train):
+    def fit(self, X_train, y_train, args):
         self.model.fit(X_train, y_train)
 
     def predict(self, X):

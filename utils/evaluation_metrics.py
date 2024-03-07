@@ -22,13 +22,13 @@ class ClassificationEvaluator:
         return accuracy_score(self.y_true, self.y_pred)
 
     def precision(self):
-        return precision_score(self.y_true, self.y_pred, average='macro')
+        return precision_score(self.y_true, self.y_pred, average='macro', zero_division=0.0)
 
     def recall(self):
-        return recall_score(self.y_true, self.y_pred, average='macro')
+        return recall_score(self.y_true, self.y_pred, average='macro', zero_division=0.0)
 
     def f1_score(self):
-        return f1_score(self.y_true, self.y_pred, average='macro')
+        return f1_score(self.y_true, self.y_pred, average='macro', zero_division=1.0)
 
     def roc_curve(self):
         fpr, tpr, _ = roc_curve(self.y_true, self.y_prob)
@@ -41,7 +41,7 @@ class ClassificationEvaluator:
         return confusion_matrix(self.y_true, self.y_pred)
 
     def classification_report(self):
-        return classification_report(self.y_true, self.y_pred)
+        return classification_report(self.y_true, self.y_pred, zero_division=0.0)
 
     def matthews_corrcoef(self):
         return matthews_corrcoef(self.y_true, self.y_pred)

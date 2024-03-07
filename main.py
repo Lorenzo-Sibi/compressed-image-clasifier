@@ -1,19 +1,18 @@
 import argparse
 from pathlib import Path
 import numpy as np
+import pandas as pd
 import pickle
 from sklearn.discriminant_analysis import StandardScaler
-from models.logistic_regression import train_logistic_regression, get_model_logistic
-from sklearn.model_selection import train_test_split
-from models.svm import train_svm, get_model_svm
+from models.logistic_regression import LogisticRegressionWrapper
+from models.svm import SVCWrapper
 from models.random_forest import RandomForestModel
 from models.resnet import ResNetClassifier
 from utils.data_loader import DatasetLoader
-from tensorflow.keras.applications.resnet50 import ResNet50
 
 from utils.evaluation_metrics import ClassificationEvaluator
 
-IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet']
+IMPLEMENTED_MODELS = ['logistic', 'svm', 'resnet', 'random_forest']
 RANDOM_STATE = 2
 
 def train(train_set, model, args):
@@ -21,7 +20,7 @@ def train(train_set, model, args):
     
     scaler = StandardScaler()
     
-    if args.model in ("logistic", 'svm'):
+    if args.model in ("logistic", 'svm', 'random_forest'):
         X_train = [x.flatten() for x in X_train["data"]]
         print(f"Total elements (flattened sample): {len(X_train)}")
         X_train = scaler.fit_transform(X_train)
@@ -43,9 +42,9 @@ def train(train_set, model, args):
         # Convert the list of normalized samples back to a DataFrame
         X_train = normalized_data
 
-    print("normalizzato")
+    print("Data normalized.")
     
-    model.fit(X_train, y_train)
+    model.fit(X_train, y_train, args)
     return model
 
 def test(test_set, model, args):
@@ -53,7 +52,7 @@ def test(test_set, model, args):
     
     scaler = StandardScaler()
     
-    if args.model in ("logistic", 'svm'):
+    if args.model in ("logistic", 'svm', 'random_forest'):
         X_test = [x.flatten() for x in X_test["data"]]
         X_test = scaler.fit_transform(X_test)
     
@@ -74,7 +73,7 @@ def test(test_set, model, args):
         # Convert the list of normalized samples back to a DataFrame
         X_test = normalized_data
         
-    print("Data normalized")
+    print("Data normalized.")
     
     y_test_pred = model.predict(X_test)
     evaluator = ClassificationEvaluator(y_test, y_test_pred)
@@ -95,30 +94,39 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     # Load data
     df = data_loader.create_dataset()
     # X, y = df.drop('label', axis=1), df['label']
-    df_training, df_testing = DatasetLoader.split_dataset(df, 0.2, shuffle=True, random_state=2)
-    print(f"Each sample has as feature ('data') an array of shape: {df['data'][0].shape}")
-    print(df_training[:5])
-    
 
+    assert args.model in IMPLEMENTED_MODELS, "Model not implemented yet"
+
+    if args.model == "logistic":
+        model = LogisticRegressionWrapper(args)
+    elif args.model == "svm":
+        model = SVCWrapper(args)
+    elif args.model == "random_forest":
+        model = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
+    elif args.model == "resnet":
+        
+        input_shape = df["data"][0].shape
+        num_classes = len(df["label"].unique())
+        
+        model = ResNetClassifier(input_shape=input_shape, num_classes=num_classes, epochs=args.epochs, batch_size=args.batch_size)
+        model.compile_model()
+        
+        labels_string = df["label"].unique().tolist()
+        label_to_int = {label: i for i, label in enumerate(labels_string)} # map labels in a dictionary
+
+        y = pd.DataFrame({"label": [label_to_int[label] for label in df["label"]]}) # convert labels to integers
+        df["label"] = y["label"]
+        
+    df_training, df_testing = DatasetLoader.split_dataset(df, 0.2, shuffle=True, random_state=2)
+    print(f"Total training samples: {len(df_training)}")
+    print(f"Total testing samples: {len(df_testing)}")
+    
+    print(f"Each sample has as feature ('data') an array of shape: {df['data'][0].shape}")
+    
     if operation == "train":
         print("Training...")
-        
-        assert args.model in IMPLEMENTED_MODELS, "Model not implemented yet"
-        
-        if args.model == "logistic":
-            model = get_model_logistic(args)
-        elif args.model == "svm":
-            model = get_model_svm(args)
-        elif args.model == "random_forest":
-            model = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
-        elif args.model == "resnet":
-            
-            input_shape = df["data"][0].shape
-            num_classes = len(y.unique())
-            
-            model = ResNetClassifier(input_shape=input_shape, num_classes=num_classes)
-            model.compile_model()
-            
+        print(df_training[:5])
+    
         trained_model = train(df_training ,model, args)
         
         model_path = model_path / str(args.model)
@@ -134,63 +142,11 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         
         y_pred, evaluator = test(df_testing, loaded_model, args)
         evaluator.print_metrics(title=f"{str(args.model)}-metrics")
+        if args.model == "resnet":
+            loaded_model.plot_training_history()
         
     elif operation == "predict":
         pass
-
-    elif args.model == "resnet":
-        
-        input_shape = df["data"][0].shape
-        num_classes = len(y.unique())
-
-        labels_string = y.unique().tolist()
-        label_to_int = {label: i for i, label in enumerate(labels_string)} # map labels in a dictionary
-
-        y = np.array([label_to_int[label] for label in y]) # convert labels to integers
-        
-        data = df["data"]
-        scaler = StandardScaler()
-        
-        normalized_data = []
-        for sample in data:
-            
-            # Normalize each channel separately
-            normalized_sample = np.zeros_like(sample)
-            for i in range(sample.shape[-1]):
-                channel = sample[:, :, i]
-                normalized_channel = scaler.fit_transform(channel)
-                normalized_sample[:, :, i] = normalized_channel
-            
-            # Append the normalized sample to the list
-            normalized_data.append(normalized_sample)
-
-        # Convert the list of normalized samples back to a DataFrame
-        # X_scaled = pd.DataFrame({'data': normalized_data})
-        X_scaled = normalized_data
-        
-        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
-        X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
-
-
-        resnet = ResNetClassifier(input_shape=input_shape, num_classes=num_classes)
-        resnet.compile_model()
-        
-        # training...
-        history = resnet.fit(X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1)
-        
-        y_test_pred = resnet.predict(X_test)
-        y_val_pred = resnet.predict(X_val)
-
-        val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
-        print("ResNet\nValidation Set metrics:")
-        val_evaluator.print_metrics(title="validation")
-
-        test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
-        print("ResNet\nTest Set metrics:")
-        test_evaluator.print_metrics(title="test")
-        
-        # Plot training history
-        resnet.plot_training_history(history)
         
 
 
@@ -229,9 +185,12 @@ if __name__ == "__main__":
 
     # Subparser for resnet model
     resnet_parser = subparsers.add_parser('resnet', help='ResNet Model')
+    resnet_parser.add_argument("--epochs", default=32, type=int, help="")
+    resnet_parser.add_argument("--batch_size", default=32, type=int, help="Number of elements in the batch")
+    resnet_parser.add_argument("--verbose", default=1, type=int, help="Minimum number of samples required to split an internal node")
     
     args = parser.parse_args()
-
+    print(args)
     main(args)
 
 
@@ -278,3 +237,58 @@ if __name__ == "__main__":
 #         test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
 #         print("\nTest Set metrics:")
 #         test_evaluator.print_metrics(title="random-forest-test")
+
+
+# elif args.model == "resnet":
+        
+#         input_shape = df["data"][0].shape
+#         num_classes = len(y.unique())
+
+#         labels_string = y.unique().tolist()
+#         label_to_int = {label: i for i, label in enumerate(labels_string)} # map labels in a dictionary
+
+#         y = np.array([label_to_int[label] for label in y]) # convert labels to integers
+        
+#         data = df["data"]
+#         scaler = StandardScaler()
+        
+#         normalized_data = []
+#         for sample in data:
+            
+#             # Normalize each channel separately
+#             normalized_sample = np.zeros_like(sample)
+#             for i in range(sample.shape[-1]):
+#                 channel = sample[:, :, i]
+#                 normalized_channel = scaler.fit_transform(channel)
+#                 normalized_sample[:, :, i] = normalized_channel
+            
+#             # Append the normalized sample to the list
+#             normalized_data.append(normalized_sample)
+
+#         # Convert the list of normalized samples back to a DataFrame
+#         # X_scaled = pd.DataFrame({'data': normalized_data})
+#         X_scaled = normalized_data
+        
+#         X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)
+#         X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=RANDOM_STATE)
+
+
+#         resnet = ResNetClassifier(input_shape=input_shape, num_classes=num_classes)
+#         resnet.compile_model()
+        
+#         # training...
+#         history = resnet.fit(X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1)
+        
+#         y_test_pred = resnet.predict(X_test)
+#         y_val_pred = resnet.predict(X_val)
+
+#         val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
+#         print("ResNet\nValidation Set metrics:")
+#         val_evaluator.print_metrics(title="validation")
+
+#         test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
+#         print("ResNet\nTest Set metrics:")
+#         test_evaluator.print_metrics(title="test")
+        
+#         # Plot training history
+#         resnet.plot_training_history(history)
