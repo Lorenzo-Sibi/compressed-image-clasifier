@@ -21,6 +21,10 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     # Load data
     df = data_loader.load_dataset()
     
+    for s in df:
+        print(s)
+    
+    exit()
     X, y = df
     
 
