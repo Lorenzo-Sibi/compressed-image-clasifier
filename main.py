@@ -7,6 +7,7 @@ from sklearn.discriminant_analysis import StandardScaler
 from models.logistic_regression import LogisticRegressionWrapper
 from models.svm import SVCWrapper
 from models.random_forest import RandomForestModel
+from models.sci import SCI
 from models.resnet import ResNetClassifier
 from utils.data_loader import DatasetLoader
 
@@ -117,6 +118,20 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         y = pd.DataFrame({"label": [label_to_int[label] for label in df["label"]]}) # convert labels to integers
         df["label"] = y["label"]
         
+    elif args.model == "sci":
+        
+        input_shape = df["data"][0].shape
+        num_classes = len(df["label"].unique())
+        
+        model = SCI(input_shape=input_shape, num_classes=num_classes)
+        model.compile_model()
+        
+        labels_string = df["label"].unique().tolist()
+        label_to_int = {label: i for i, label in enumerate(labels_string)} # map labels in a dictionary
+
+        y = pd.DataFrame({"label": [label_to_int[label] for label in df["label"]]}) # convert labels to integers
+        df["label"] = y["label"]
+        
     df_training, df_testing = DatasetLoader.split_dataset(df, 0.2, shuffle=True, random_state=2)
     print(f"Total training samples: {len(df_training)}")
     print(f"Total testing samples: {len(df_testing)}")
@@ -124,8 +139,8 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     print(f"Each sample has as feature ('data') an array of shape: {df['data'][0].shape}")
     
     if operation == "train":
-        print("Training...")
         print(df_training[:5])
+        print("Training...")
     
         trained_model = train(df_training ,model, args)
         
@@ -142,7 +157,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         
         y_pred, evaluator = test(df_testing, loaded_model, args)
         evaluator.print_metrics(title=f"{str(args.model)}-metrics")
-        if args.model == "resnet":
+        if args.model == "resnet" or "sci":
             loaded_model.plot_training_history()
         
     elif operation == "predict":
@@ -188,6 +203,9 @@ if __name__ == "__main__":
     resnet_parser.add_argument("--epochs", default=32, type=int, help="")
     resnet_parser.add_argument("--batch_size", default=32, type=int, help="Number of elements in the batch")
     resnet_parser.add_argument("--verbose", default=1, type=int, help="Minimum number of samples required to split an internal node")
+    
+    # Source Camera Identification model
+    sci_subparser = subparsers.add_parser("sci", help="Source Camera Identification Model")
     
     args = parser.parse_args()
     print(args)

@@ -13,10 +13,15 @@ class LogisticRegressionWrapper():
     def fit(self, X_train, y_train, args):
         self.model.fit(X_train, y_train)
         
+    def predict(self, X_test):
+        y_pred = self.model.predict(X_test)
+        return y_pred
+        
     def print_params(self):
         params = self.model.get_params()
         param_table = list(params.items())
         print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
+    
 
 def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     

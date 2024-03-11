@@ -11,6 +11,10 @@ class SVCWrapper():
     def fit(self, X_train, y_train, _):
         self.model.fit(X_train, y_train)
         
+    def predict(self, X_test):
+        y_pred = self.model.predict(X_test)
+        return y_pred
+        
     def print_params(self):
         params = self.model.get_params()
         param_table = list(params.items())
