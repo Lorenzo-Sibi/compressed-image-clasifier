@@ -157,7 +157,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         
         y_pred, evaluator = test(df_testing, loaded_model, args)
         evaluator.print_metrics(title=f"{str(args.model)}-metrics")
-        if args.model == "resnet" or "sci":
+        if args.model == "resnet" or args.model == "sci":
             loaded_model.plot_training_history()
         
     elif operation == "predict":
