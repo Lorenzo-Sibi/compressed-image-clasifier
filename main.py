@@ -140,7 +140,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     
     if operation == "train":
         print(df_training[:5])
-        print("Training...")
+        print(f"Training {args.model}")
     
         trained_model = train(df_training ,model, args)
         
@@ -153,7 +153,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         with model_path.open("rb") as fp:
             loaded_model = pickle.load(fp)
             
-        print("Testing...")
+        print(f"Testing {args.model}")
         
         y_pred, evaluator = test(df_testing, loaded_model, args)
         evaluator.print_metrics(title=f"{str(args.model)}-metrics")
