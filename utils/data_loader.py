@@ -60,6 +60,21 @@ class DatasetLoader():
         dataset = tf.data.Dataset.from_generator(generator, output_signature=(tf.TensorSpec(shape=(None, None, None), dtype=tf.float32), tf.TensorSpec(shape=(), dtype=tf.string)))
         return dataset
         
+    def load_data(self):
+        data_with_labels = []
+        max_shape = (0,)  # Initialize max shape
+
+        for label in self.labels:
+            folder = self.main_folder / label
+            for file_path in folder.glob('*'):
+                # Assuming the files are numpy arrays
+                numpy_array = DatasetLoader.load_tensor(file_path)
+
+                # Update max shape
+                max_shape = tuple(np.maximum(max_shape, numpy_array.shape))
+
+                data_with_labels.append((numpy_array, label, numpy_array.shape))
+        return data_with_labels, max_shape
 
     def create_dataset(self):
         data_with_labels, max_shape = self.load_data()
