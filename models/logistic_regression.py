@@ -6,6 +6,23 @@ from sklearn.preprocessing import StandardScaler
 
 RANDOM_STATE = 2
 
+class LogisticRegressionWrapper():
+    def __init__(self, args):
+        self.model = LogisticRegression(tol=args.tolerance, verbose = args.verbose, random_state=RANDOM_STATE)
+    
+    def fit(self, X_train, y_train, args):
+        self.model.fit(X_train, y_train)
+        
+    def predict(self, X_test):
+        y_pred = self.model.predict(X_test)
+        return y_pred
+        
+    def print_params(self):
+        params = self.model.get_params()
+        param_table = list(params.items())
+        print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
+    
+
 def train_logistic_regression(X, y):  # sourcery skip: extract-duplicate-method
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=True, random_state=RANDOM_STATE)

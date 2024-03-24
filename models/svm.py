@@ -4,6 +4,22 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from utils.evaluation_metrics import ClassificationEvaluator  # Import DataLoader class from the data loader module
 
+class SVCWrapper():
+    def __init__(self, args):
+        self.model = SVC(tol=args.svm_tolerance, verbose=args.verbose, random_state=2)
+    
+    def fit(self, X_train, y_train, _):
+        self.model.fit(X_train, y_train)
+        
+    def predict(self, X_test):
+        y_pred = self.model.predict(X_test)
+        return y_pred
+        
+    def print_params(self):
+        params = self.model.get_params()
+        param_table = list(params.items())
+        print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
+
 def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True, random_state=2)
@@ -36,8 +52,3 @@ def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
     test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
     print("\nTest Set metrics:")
     test_evaluator.print_metrics(title="svm-test")
-    
-def print_params(model):
-    params = model.get_params()
-    param_table = list(params.items())
-    print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))

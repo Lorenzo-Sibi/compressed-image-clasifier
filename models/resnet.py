@@ -20,10 +20,13 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 
 class ResNetClassifier:
-    def __init__(self, input_shape=(32, 32, 3), num_classes=3):
+    def __init__(self, input_shape=(32, 32, 3), num_classes=3, epochs=32, batch_size=32):
         self.input_shape = input_shape
         self.num_classes = num_classes
+        self.epochs = epochs
+        self.batch_size = batch_size
         self.model = self.build_model()
+        self.history = None
         
     def build_model(self):
         base_model = ResNet50(include_top=False, weights=None, input_shape=self.input_shape)
@@ -44,19 +47,17 @@ class ResNetClassifier:
         optimizer = Adam(learning_rate=learning_rate)
         self.model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    def train(self, X_train, y_train, X_val, y_val, epochs=20, batch_size=32, verbose=1):
+    def fit(self, X_train, y_train, args):
+        verbose = args.verbose
+        
         # Convert NumPy arrays to TensorFlow tensors
         X_train = tf.convert_to_tensor(X_train)
         y_train = tf.convert_to_tensor(y_train)
-        X_val = tf.convert_to_tensor(X_val)
-        y_val = tf.convert_to_tensor(y_val)
         
         early_stopping = EarlyStopping(patience=3, restore_best_weights=True)
 
-        history = self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,
-                                 validation_data=(X_val, y_val), callbacks=[early_stopping], verbose=verbose)
-
-        return history
+        history = self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size, callbacks=[early_stopping], verbose=verbose)
+        self.history = history
 
     def predict(self, X):
         """
@@ -68,30 +69,26 @@ class ResNetClassifier:
         Returns:
         - y_pred: Predicted class labels (integers), numpy array of shape (num_samples,).
         """
-        y_pred = np.argmax(self.model.predict(X), axis=-1)
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+            
+        prediction = self.model.predict(X)
+        y_pred = np.argmax(prediction, axis=-1)
         return y_pred
     
 
-    def plot_training_history(self, history, save_path=Path("./")):
+    def plot_training_history(self, save_path="./"):
+        history = self.history
         plt.figure(figsize=(12, 6))
 
-        plt.subplot(1, 2, 1)
-        plt.plot(history.history['accuracy'], label='Train Accuracy')
-        plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-        plt.title('Training and Validation Accuracy')
+        plt.plot(history.history['accuracy'], label='Train Accuracy', color='blue')
+        plt.plot(history.history['loss'], label='Train Loss', color='orange')
+        
+        plt.title('Training Accuracy and Loss')
         plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.legend()
         plt.grid(True)
-
-        plt.subplot(1, 2, 2)
-        plt.plot(history.history['loss'], label='Train Loss')
-        plt.plot(history.history['val_loss'], label='Validation Loss')
-        plt.title('Training and Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
         plt.legend()
-        plt.grid(True)
-
         plt.tight_layout()
+        
+        save_path = Path(save_path, "history_plot.png")
         plt.savefig(save_path)

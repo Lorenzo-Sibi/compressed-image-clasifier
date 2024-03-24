@@ -1,6 +1,7 @@
 import tensorflow as tf
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 from pathlib import Path
 
 IMAGE_SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png')
@@ -104,3 +105,7 @@ class DatasetLoader():
         except Exception as e:
             print(f"Error loading {file_path.stem} file: {str(e)}.", "\nFile path: ", file_path)
             raise RuntimeError(f"Error loading {file_path.stem} file: {str(e)}.") from e
+      
+    @staticmethod
+    def split_dataset(df, test_size, shuffle=True, random_state=2):
+        return train_test_split(df, test_size=test_size, shuffle=True, random_state=random_state)
