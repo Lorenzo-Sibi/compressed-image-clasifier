@@ -18,7 +18,6 @@ RANDOM_STATE = 2
 
 def train(train_set, model, args):
     X_train, y_train = train_set.drop("label", axis=1), train_set['label']
-    
     scaler = StandardScaler()
     
     if args.model in ("logistic", 'svm', 'random_forest'):
@@ -172,7 +171,6 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest='model', help='Select the model to train/load/evaluate')
     parser.add_argument("dataset_path", type=str, help="Path to the main folder containing the dataset (each subfolder shoud represents the relative class)")
     parser.add_argument("model_path", default = "./", help="Path where to save/load the trained model.")
-    
 
     # Subparser for logistic regression model
     logistic_parser = subparsers.add_parser('logistic', help='Logistic Regression Model')
