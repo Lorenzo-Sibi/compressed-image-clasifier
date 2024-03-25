@@ -47,16 +47,12 @@ class ResNetClassifier:
         optimizer = Adam(learning_rate=learning_rate)
         self.model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    def fit(self, X_train, y_train, args):
+    def fit(self, train_set, args):
         verbose = args.verbose
-        
-        # Convert NumPy arrays to TensorFlow tensors
-        X_train = tf.convert_to_tensor(X_train)
-        y_train = tf.convert_to_tensor(y_train)
         
         early_stopping = EarlyStopping(patience=3, restore_best_weights=True)
 
-        history = self.model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size, callbacks=[early_stopping], verbose=verbose)
+        history = self.model.fit(train_set, epochs=self.epochs, callbacks=[early_stopping], verbose=verbose)
         self.history = history
 
     def predict(self, X):

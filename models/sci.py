@@ -56,8 +56,8 @@ class SCI(Model):
         self.model
         self.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
         
-    def fit(self, X_train, y_train, epochs=10, batch_size=32, validation_split=0.2):
-        self.history = self.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
+    def fit(self, train_set, epochs=10, batch_size=32, validation_split=0.2):
+        self.history = self.fit(train_set, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
         return self.history
 
     def call(self, inputs):

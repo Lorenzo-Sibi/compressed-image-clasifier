@@ -1,5 +1,7 @@
+import tensorflow as tf
 from tabulate import tabulate
 from utils.evaluation_metrics import ClassificationEvaluator
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -8,17 +10,23 @@ RANDOM_STATE = 2
 
 class LogisticRegressionWrapper():
     def __init__(self, args):
-        self.model = LogisticRegression(tol=args.tolerance, verbose = args.verbose, random_state=RANDOM_STATE)
-    
-    def fit(self, X_train, y_train, args):
-        self.model.fit(X_train, y_train)
-        
+        self.model = tf.keras.Sequential([
+            tf.keras.layers.Dense(1, activation='sigmoid')
+        ])
+        self.model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    def fit(self, train_set, args):
+        batch_size = train_set.reduce(0, lambda x, _: x + 1).numpy()
+        self.model.fit(train_set, verbose=args.verbose)
+
     def predict(self, X_test):
+        # Effettua le predizioni sul dataset di test
         y_pred = self.model.predict(X_test)
         return y_pred
-        
+
     def print_params(self):
-        params = self.model.get_params()
+        # Stampa i parametri del modello
+        params = self.model.get_config()
         param_table = list(params.items())
         print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
     

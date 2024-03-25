@@ -8,8 +8,8 @@ class SVCWrapper():
     def __init__(self, args):
         self.model = SVC(tol=args.svm_tolerance, verbose=args.verbose, random_state=2)
     
-    def fit(self, X_train, y_train, _):
-        self.model.fit(X_train, y_train)
+    def fit(self, train_set, _):
+        self.model.fit(train_set)
         
     def predict(self, X_test):
         y_pred = self.model.predict(X_test)
