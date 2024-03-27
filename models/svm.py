@@ -1,8 +1,6 @@
+import tensorflow as tf
 from tabulate import tabulate
 from sklearn.svm import SVC
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from utils.evaluation_metrics import ClassificationEvaluator  # Import DataLoader class from the data loader module
 
 class SVCWrapper():
     def __init__(self, args):
@@ -19,36 +17,69 @@ class SVCWrapper():
         params = self.model.get_params()
         param_table = list(params.items())
         print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
-
-def train_svm(X, y, test_size=0.2, tolerance=1e-2, verbose=False):
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True, random_state=2)
-    X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.4, shuffle=True, random_state=2)
-    
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-    X_val_scaled = scaler.transform(X_val)
-
-    model = SVC(tol=tolerance, verbose=verbose, random_state=2)
-    model.fit(X_train_scaled, y_train)
-    
-    
-    if model.kernel == 'poly':
-        print(f"Kernel: {model.kernel}, Degree: {model.degree}")
-    else:
-        print(f"Kernel: {model.kernel}")
         
-    y_test_pred = model.predict(X_test_scaled)
-    y_val_pred = model.predict(X_val_scaled)
+class HingeLossLayer(tf.keras.layers.Layer):
+    def __init__(self, num_classes, C=1.0, **kwargs):
+        super(HingeLossLayer, self).__init__(**kwargs)
+        self.num_classes = num_classes
+        self.C = C
     
-    print("\Support Vector Machine Model:\n")
-    print_params(model)
+    def call(self, inputs, labels):
+        labels = tf.one_hot(labels, depth=self.num_classes)
+        labels = tf.cast(labels, dtype=inputs.dtype)
+        # Compute the standard hinge loss
+        per_sample_loss = tf.maximum(0., 1. - labels * inputs)
+        # Compute regularization loss
+        regularization_loss = 1/2 * tf.reduce_sum(inputs * inputs)
+        # Combine hinge loss with regularization loss
+        loss = tf.reduce_mean(per_sample_loss) + self.C * regularization_loss
+        self.add_loss(loss)
+        return inputs
+    
+    
+class SVMClassifier(tf.keras.Model):
+    def __init__(self, input_shape, num_classes, C=1.0, epochs=20, **kwargs):
+        super(SVMClassifier, self).__init__(**kwargs)
+        self.num_classes = num_classes
+        self.C = C
+        self.epochs = epochs
+        # Layer setup
+        self.flatten = tf.keras.layers.Flatten(input_shape=input_shape)
+        self.dense = tf.keras.layers.Dense(num_classes, use_bias=False)  # Linear kernel
+        self.hinge_loss_layer = HingeLossLayer(num_classes, C=self.C)
 
-    val_evaluator = ClassificationEvaluator(y_val, y_val_pred)
-    print("\nValidation Set metrics:")
-    val_evaluator.print_metrics(title="svm-validation")
+    def call(self, inputs, training=False, labels=None):
+        x = self.flatten(inputs)
+        x = self.dense(x)
+        if training:
+            if labels is None:
+                raise ValueError("Labels must not be None for training")
+            return self.hinge_loss_layer(x, labels)
+        return x
+
+    def train_step(self, data):
+        x, y = data  # The dataset yields (features, labels)
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True, labels=y)
+            loss = self.compiled_loss(y, y_pred, regularization_losses=self.losses)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars)) # Update weights
+        self.compiled_metrics.update_state(y, y_pred) # Update the metrics.
+        
+        return {m.name: m.result() for m in self.metrics}
     
-    test_evaluator = ClassificationEvaluator(y_test, y_test_pred)
-    print("\nTest Set metrics:")
-    test_evaluator.print_metrics(title="svm-test")
+    def compile(self, optimizer="adam", **kwargs):
+        super(SVMClassifier, self).compile(optimizer=optimizer, metrics=['accuracy'] ,**kwargs)
+
+    def fit(self, dataset, **kwargs):
+        kwargs['epochs'] = kwargs.get('epochs', self.epochs)
+        return super(SVMClassifier, self).fit(dataset, **kwargs)
+
+    def predict(self, X):
+        predictions = self(X, training=False)
+        return tf.argmax(predictions, axis=1)

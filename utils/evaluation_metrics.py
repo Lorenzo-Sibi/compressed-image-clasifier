@@ -1,93 +1,73 @@
+import tensorflow as tf
 import numpy as np
-from pathlib import Path
 import matplotlib.pyplot as plt
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    roc_curve,
-    auc,
-    confusion_matrix,
-    classification_report,
-    matthews_corrcoef,
-)
+from sklearn.metrics import confusion_matrix
+import seaborn as sns  # For a nicer confusion matrix visualization
 
 class ClassificationEvaluator:
-    def __init__(self, y_true, y_pred):
-        self.y_true = y_true
-        self.y_pred = y_pred
+    def __init__(self):
+        # Initialize metrics
+        self.metrics = {
+            'accuracy': tf.keras.metrics.Accuracy(),
+            'precision': tf.keras.metrics.Precision(),
+            'recall': tf.keras.metrics.Recall(),
+        }
+        self.f1_score = None
+        self.all_labels = []
+        self.all_predictions = []
 
-    def accuracy(self):
-        return accuracy_score(self.y_true, self.y_pred)
+    def update_state(self, y_true, y_pred):
+        # Update state for each metric and save all labels and predictions
+        self.all_labels.extend(y_true.numpy())
+        self.all_predictions.extend(y_pred)
+        
+        for metric in self.metrics.values():
+            metric.update_state(y_true, y_pred)
 
-    def precision(self):
-        return precision_score(self.y_true, self.y_pred, average='macro', zero_division=0.0)
+        # Calculate F1 Score
+        precision = self.metrics['precision'].result().numpy()
+        recall = self.metrics['recall'].result().numpy()
+        self.f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
-    def recall(self):
-        return recall_score(self.y_true, self.y_pred, average='macro', zero_division=0.0)
+    # TODO: fix evaluate method, cerca di eliminare se possibile il ciclo for, inoltre print_metrics() restituisce tuti valori 0.0
 
-    def f1_score(self):
-        return f1_score(self.y_true, self.y_pred, average='macro', zero_division=1.0)
+    def evaluate(self, test_dataset, model):
+        self.set_model(model)
+        for batch in test_dataset:
+            feature, labels = batch
+            predictions = model.predict(feature)
+            self.update_state(labels, predictions)
 
-    def roc_curve(self):
-        fpr, tpr, _ = roc_curve(self.y_true, self.y_prob)
-        return fpr, tpr
+        results = {name: metric.result().numpy() for name, metric in self.metrics.items()}
+        results['f1_score'] = self.f1_score
 
-    def auc_score(self):
-        return auc(self.roc_curve()[0], self.roc_curve()[1])
+        # Reset metrics after evaluation
+        for metric in self.metrics.values():
+            metric.reset_states()
 
-    def confusion_matrix(self):
-        return confusion_matrix(self.y_true, self.y_pred)
+        return results
 
-    def classification_report(self):
-        return classification_report(self.y_true, self.y_pred, zero_division=0.0)
+    def set_model(self, model):
+        self.model = model
 
-    def matthews_corrcoef(self):
-        return matthews_corrcoef(self.y_true, self.y_pred)
+    def print_metrics(self):
+        print("Evaluation Metrics:")
+        print(f"Accuracy: {self.metrics['accuracy'].result().numpy()}")
+        print(f"Precision: {self.metrics['precision'].result().numpy()}")
+        print(f"Recall: {self.metrics['recall'].result().numpy()}")
+        print(f"F1 Score: {self.f1_score}")
 
-    def plot_roc_curve(self, output_path=Path("./")):
-        fpr, tpr = self.roc_curve()
+    def plot_confusion_matrix(self, normalize=False):
+        cm = confusion_matrix(self.all_labels, self.all_predictions)
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+            print("Normalized confusion matrix")
+        else:
+            print('Confusion matrix, without normalization')
+
         plt.figure(figsize=(8, 6))
-        plt.plot(fpr, tpr, color='blue', lw=2, label='ROC curve (AUC = {:.2f})'.format(self.auc_score()))
-        plt.plot([0, 1], [0, 1], color='gray', linestyle='--')
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver Operating Characteristic (ROC) Curve')
-        plt.legend(loc='lower right')
-        plt.grid(True)
-        plt.tight_layout()
-        plt.savefig(output_path)
-
-    def plot_confusion_matrix(self, output_path=Path("./"), labels=None):
-        cm = self.confusion_matrix()
-        if labels is None:
-            labels = np.unique(self.y_true)
-        plt.figure(figsize=(8, 6))
-        plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+        sns.heatmap(cm, annot=True, fmt=".2f" if normalize else "d")
         plt.title('Confusion Matrix')
-        plt.colorbar()
-        tick_marks = np.arange(len(labels))
-        plt.xticks(tick_marks, labels, rotation=45)
-        plt.yticks(tick_marks, labels)
-        plt.xlabel('Predicted Label')
-        plt.ylabel('True Label')
-        plt.grid(False)
-        for i in range(len(labels)):
-            for j in range(len(labels)):
-                plt.text(j, i, format(cm[i, j], 'd'), horizontalalignment="center", color="white" if cm[i, j] > cm.max() / 2 else "black")
-        plt.tight_layout()
-        plt.savefig(output_path)
-
-    def print_metrics(self, title:str, output_path="./"):
-        print("\tAccuracy:", self.accuracy())
-        print("\tPrecision:", self.precision())
-        print("\tRecall:", self.recall())
-        print("\tF1 Score:", self.f1_score())
-        print("\tMatthews Correlation Coefficient:", self.matthews_corrcoef())
-        print("\tClassification Report:")
-        print(self.classification_report())
-        print("\tConfusion Matrix:")
-        print(self.confusion_matrix())
-        print("\n")
-        self.plot_confusion_matrix(output_path=Path(output_path, f"confusion-matrix-{title}"))
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        plt.show()

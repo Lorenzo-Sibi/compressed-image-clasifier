@@ -10,16 +10,11 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, LeakyReLU
-
+from tensorflow.keras.callbacks import EarlyStopping
 
 class SCI(Model):
-    def __init__(self, input_shape=(32, 32, 3), num_classes=3):  # 32x32 input shape as default (change for latent spaces) same for num_classes
+    def __init__(self, input_shape, num_classes):  # 32x32 input shape as default (change for latent spaces) same for num_classes
         super(SCI, self).__init__()
-        
-        self.optimizer = None
-        self.loss = None
-        self.metrics = None
-        
         self.history = None
 
         self.convs = tf.keras.Sequential([
@@ -49,22 +44,43 @@ class SCI(Model):
             Dense(num_classes )
         ])
         
-    def compile_model(self, optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']):
-        self.optimizer = optimizer
-        self.loss = loss
-        self.metrics = metrics
-        self.model
-        self.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
-        
-    def fit(self, train_set, epochs=10, batch_size=32, validation_split=0.2):
-        self.history = self.fit(train_set, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
-        return self.history
+    def compile(self, optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']):
+        super(SCI, self).compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
     def call(self, inputs):
         x = self.convs(inputs)
         x = self.features(x)
         return x
+
+    def fit(self, train_data, validation_data=None, epochs=10, batch_size=32, **kwargs):
+        early_stopping = EarlyStopping(monitor="accuracy", patience=1, restore_best_weights=True)
+        
+        history = super(SCI, self).fit(train_data, validation_data=validation_data, epochs=epochs, batch_size=batch_size, callbacks=[early_stopping], **kwargs)
+        self.history = history
+        return history
     
+    def predict(self, x, return_probabilities=False):
+        predictions = super(SCI, self).predict(x)
+        return predictions if return_probabilities else tf.argmax(predictions, axis=1)
+
+    def evaluate(self, x, y, batch_size=None, verbose=1, sample_weight=None, return_dict=False):
+        # Qui potresti inserire logica personalizzata se necessario
+        return super(SCI, self).evaluate(x, y, batch_size=batch_size, verbose=verbose, sample_weight=sample_weight, return_dict=return_dict)
+
+
+class SCIWrapper():
+    def __init__(self, input_shape=(32, 32, 3), num_classes=3) -> None:
+        self.model = SCI(input_shape=input_shape, num_classes=num_classes)
+        self.model.compile_model()
+        self.history = None
+        
+    def fit(self, train_set, args):
+        
+        
+        
+        self.history = self.model.fit(train_set, epochs=args.epochs, verbose=args.verbose, callbacks=[early_stopping])
+        return self.history
+        
     def plot_training_history(self, save_path="./"):
         history = self.history
         plt.figure(figsize=(12, 6))

@@ -2,34 +2,24 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from pathlib import Path
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    roc_curve,
-    auc,
-    confusion_matrix,
-    classification_report,
-)
 
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Flatten, Dense, Dropout
+from tensorflow.keras.layers import Flatten, Dense, Dropout, GlobalAveragePooling2D
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 
-class ResNetClassifier:
-    def __init__(self, input_shape=(32, 32, 3), num_classes=3, epochs=32, batch_size=32):
-        self.input_shape = input_shape
+class ResNetClassifier(Model):
+    def __init__(self, input_shape, num_classes, **kwargs):
+        super(ResNetClassifier, self).__init__(**kwargs)
+        self.inp_shape = input_shape
         self.num_classes = num_classes
-        self.epochs = epochs
-        self.batch_size = batch_size
+
         self.model = self.build_model()
         self.history = None
         
     def build_model(self):
-        base_model = ResNet50(include_top=False, weights=None, input_shape=self.input_shape)
+        base_model = ResNet50(include_top=False, weights=None, input_shape=self.inp_shape)
 
         x = Flatten()(base_model.output)
         x = Dense(512, activation='relu')(x)
@@ -43,35 +33,30 @@ class ResNetClassifier:
 
         return model
 
-    def compile_model(self, learning_rate=0.001):
-        optimizer = Adam(learning_rate=learning_rate)
-        self.model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    def call(self, inputs, training=False):
+        x = self.model(inputs, training=training)
+        return x
 
-    def fit(self, train_set, args):
-        verbose = args.verbose
+    def compile(self, optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'], **kwargs):
+        super(ResNetClassifier, self).compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
+
+    def fit(self, train_data, validation_data=None, epochs=10, batch_size=32, **kwargs):
         
-        early_stopping = EarlyStopping(patience=3, restore_best_weights=True)
-
-        history = self.model.fit(train_set, epochs=self.epochs, callbacks=[early_stopping], verbose=verbose)
+        early_stopping = EarlyStopping(monitor="accuracy", patience=1, restore_best_weights=True)
+        
+        history = super(ResNetClassifier, self).fit(train_data, validation_data=validation_data, epochs=epochs, batch_size=batch_size, callbacks=[early_stopping], **kwargs)
         self.history = history
-
-    def predict(self, X):
-        """
-        Predict class labels for input samples.
-        
-        Parameters:
-        - X: Input data, numpy array of shape (num_samples, height, width, channels).
-        
-        Returns:
-        - y_pred: Predicted class labels (integers), numpy array of shape (num_samples,).
-        """
-        if not isinstance(X, np.ndarray):
-            X = np.array(X)
-            
-        prediction = self.model.predict(X)
-        y_pred = np.argmax(prediction, axis=-1)
-        return y_pred
+        return history
     
+    def predict(self, X):
+        predictions = self(X, training=False)
+        return tf.argmax(predictions, axis=1)
+
+
+    def evaluate(self, test_set):
+        model = self.model
+        results = model.evaluate(test_set)
+        return results
 
     def plot_training_history(self, save_path="./"):
         history = self.history

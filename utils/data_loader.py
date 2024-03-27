@@ -39,7 +39,7 @@ class DatasetLoader():
 
         return max_shape
     
-    def load_dataset(self, label_type="string"):
+    def load_dataset(self):
         def generator():
             max_shape = self.max_shape  # Maximum shape based on the largest tensor shape
             
@@ -54,22 +54,15 @@ class DatasetLoader():
                         
                         pad_width = [(0, max_dim - cur_dim) if max_dim > cur_dim else (0, 0) for cur_dim, max_dim in zip(tensor_data.shape, max_shape)]
                         padded_tensor = np.pad(tensor_data, pad_width=pad_width, mode='constant', constant_values=0)
+                        padded_tensor = padded_tensor.astype(np.float16)
                         
                         num_label = self.label_map[label]
-                        if label_type == "string":
-                            yield padded_tensor, label
-                        else:
-                            yield padded_tensor, num_label
+                        yield padded_tensor, num_label
                             
                     except Exception as e:
                         raise RuntimeError(e) from e
-        
-        if label_type == "string":
-            label_spec = tf.TensorSpec(shape=(), dtype=tf.string)
-        else:
-            label_spec = tf.TensorSpec(shape=(), dtype=tf.int32)
             
-        dataset = tf.data.Dataset.from_generator(generator, output_signature=(tf.TensorSpec(shape=(None, None, None), dtype=tf.float32), label_spec))
+        dataset = tf.data.Dataset.from_generator(generator, output_signature=(tf.TensorSpec(shape=self.max_shape, dtype=tf.float32), tf.TensorSpec(shape=(), dtype=tf.int8)))
         return dataset
         
     def load_data(self):
