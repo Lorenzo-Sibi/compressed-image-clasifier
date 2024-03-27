@@ -38,11 +38,9 @@ def train(train_set, model, args):
         train_set = train_set.map(lambda x, y: flatten_feature(x, y))
     
     train_set = train_set.batch(32)
-        
-    for sample in train_set.take(1):
-        print(sample)
     
-    model.fit(train_set, epochs=args.epochs)
+    # Shuffle=False to prevent process running out of memory during shuffle
+    model.fit(train_set, epochs=args.epochs, shuffle=False)
     return model
 
 def test(test_set, model, args):
