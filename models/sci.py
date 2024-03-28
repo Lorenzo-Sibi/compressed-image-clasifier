@@ -55,9 +55,7 @@ class SCI(Model):
         return x
 
     def fit(self, train_data, validation_data=None, epochs=10, batch_size=32, **kwargs):
-        early_stopping = EarlyStopping(monitor="accuracy", patience=1, restore_best_weights=True)
-        
-        history = super(SCI, self).fit(train_data, validation_data=validation_data, epochs=epochs, batch_size=batch_size, callbacks=[early_stopping], **kwargs)
+        history = super(SCI, self).fit(train_data, validation_data=validation_data, epochs=epochs, batch_size=batch_size, **kwargs)
         self.history = history
         return history
     
