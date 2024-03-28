@@ -7,7 +7,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0 = info, 1 = warning, 2 = error, 3 
 import tensorflow as tf
 from models.logistic_regression import LogisticRegressionTF
 from models.svm import SVMClassifier
-from models.random_forest import RandomForestModel
+# from models.random_forest import RandomForestModel
 from models.sci import SCI
 from models.resnet import ResNetClassifier
 from models.inceptionv3 import InceptionV3Classifier
