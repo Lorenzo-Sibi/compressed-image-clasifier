@@ -135,7 +135,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         model.save("./models", save_format='tf')
 
         
-        model.save(model_path)
+        # model.save(model_path)
         # with model_path.open('wb') as fp:
         #     pickle.dump(trained_model, fp)
         
