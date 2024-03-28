@@ -39,8 +39,7 @@ def train(train_set, model, args):
     
     train_set = train_set.batch(32)
     
-    # Shuffle=False to prevent process running out of memory during shuffle
-    model.fit(train_set, epochs=args.epochs, shuffle=False)
+    model.fit(train_set, epochs=args.epochs)
     return model
 
 def test(test_set, model, args):
@@ -116,7 +115,8 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     train_size = int(0.8 * dataset_size)  # 80% dei dati per il training set
     test_size = int(dataset_size - train_size)
     
-    df = df.shuffle(dataset_size, seed=SEED)
+    # Shuffle=False to prevent the process running out of memory during shuffle for each epoch 
+    df = df.shuffle(dataset_size, seed=SEED, reshuffle_each_iteration=False)
     
     train_dataset = df.take(train_size)
     test_dataset = df.skip(train_size)
