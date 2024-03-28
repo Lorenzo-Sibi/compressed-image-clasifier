@@ -131,7 +131,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         trained_model = train(train_dataset, model, args)
         
         model_path = model_path / str(args.model + ".keras")
-        model.save(model_path, save_format="tf")
+        model.save(model_path)
         # with model_path.open('wb') as fp:
         #     pickle.dump(trained_model, fp)
         
