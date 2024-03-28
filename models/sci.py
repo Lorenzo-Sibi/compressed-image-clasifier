@@ -13,12 +13,14 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropou
 from tensorflow.keras.callbacks import EarlyStopping
 
 class SCI(Model):
-    def __init__(self, input_shape, num_classes):  # 32x32 input shape as default (change for latent spaces) same for num_classes
+    def __init__(self, inp_shape, num_classes):  # 32x32 input shape as default (change for latent spaces) same for num_classes
         super(SCI, self).__init__()
+        self.inp_shape = inp_shape
+        self.num_classes = num_classes
         self.history = None
 
         self.convs = tf.keras.Sequential([
-            Conv2D(64, (3, 3), strides=(2, 2), padding='valid', input_shape=input_shape),
+            Conv2D(64, (3, 3), strides=(2, 2), padding='valid', input_shape=inp_shape),
             BatchNormalization(),
             LeakyReLU(),
 
@@ -67,32 +69,17 @@ class SCI(Model):
         # Qui potresti inserire logica personalizzata se necessario
         return super(SCI, self).evaluate(x, y, batch_size=batch_size, verbose=verbose, sample_weight=sample_weight, return_dict=return_dict)
 
+    def save(self, *args, **kwargs):
+        super(SCI, self).save(*args, **kwargs)
 
-class SCIWrapper():
-    def __init__(self, input_shape=(32, 32, 3), num_classes=3) -> None:
-        self.model = SCI(input_shape=input_shape, num_classes=num_classes)
-        self.model.compile_model()
-        self.history = None
-        
-    def fit(self, train_set, args):
-        
-        
-        
-        self.history = self.model.fit(train_set, epochs=args.epochs, verbose=args.verbose, callbacks=[early_stopping])
-        return self.history
-        
-    def plot_training_history(self, save_path="./"):
-        history = self.history
-        plt.figure(figsize=(12, 6))
+    def get_config(self):
+        config = super(SCI, self).get_config()
+        config.update({
+            'inp_shape': self.inp_shape,
+            'num_classes': self.num_classes,
+        })
+        return config
 
-        plt.plot(history.history['accuracy'], label='Train Accuracy', color='blue')
-        plt.plot(history.history['loss'], label='Train Loss', color='orange')
-        
-        plt.title('Training Accuracy and Loss')
-        plt.xlabel('Epoch')
-        plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
-        
-        save_path = Path(save_path, "history_plot.png")
-        plt.savefig(save_path)
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)

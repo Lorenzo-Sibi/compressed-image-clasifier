@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 from sklearn.metrics import confusion_matrix
 import seaborn as sns  # For a nicer confusion matrix visualization
 
@@ -57,7 +58,8 @@ class ClassificationEvaluator:
         print(f"Recall: {self.metrics['recall'].result().numpy()}")
         print(f"F1 Score: {self.f1_score}")
 
-    def plot_confusion_matrix(self, normalize=False):
+    def plot_confusion_matrix(self, save_path="./", normalize=False):
+        save_path = Path(save_path)
         cm = confusion_matrix(self.all_labels, self.all_predictions)
         if normalize:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
@@ -70,4 +72,4 @@ class ClassificationEvaluator:
         plt.title('Confusion Matrix')
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
-        plt.show()
+        plt.savefig(save_path)

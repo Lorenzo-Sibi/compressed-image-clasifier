@@ -10,9 +10,9 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 
 class ResNetClassifier(Model):
-    def __init__(self, input_shape, num_classes, **kwargs):
+    def __init__(self, inp_shape, num_classes, **kwargs):
         super(ResNetClassifier, self).__init__(**kwargs)
-        self.inp_shape = input_shape
+        self.inp_shape = inp_shape
         self.num_classes = num_classes
 
         self.model = self.build_model()
@@ -58,6 +58,18 @@ class ResNetClassifier(Model):
         results = model.evaluate(test_set)
         return results
 
+    def get_config(self):
+        config = super(ResNetClassifier, self).get_config()
+        config.update({
+            'inp_shape': self.inp_shape,
+            'num_classes': self.num_classes,
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+    
     def plot_training_history(self, save_path="./"):
         history = self.history
         plt.figure(figsize=(12, 6))

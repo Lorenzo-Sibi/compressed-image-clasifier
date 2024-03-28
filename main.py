@@ -67,7 +67,7 @@ def test(test_set, model, args):
     
     # evaluator.print_metrics()
     print(tabulate(list(results.items()), headers=["Hyperparameter", "Value"], tablefmt="pretty"))
-    evaluator.plot_confusion_matrix(normalize=False)  # Use normalize=True for a normalized confusion matrix
+    evaluator.plot_confusion_matrix(save_path=f"{args.model}_confusion_matrix.png",normalize=False)  # Use normalize=True for a normalized confusion matrix
 
     return results
 
@@ -92,13 +92,13 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     assert args.model in IMPLEMENTED_MODELS, "Model not implemented yet"
     
     if args.model == "logistic":
-        model = LogisticRegressionTF(input_shape=input_shape, num_classes=num_classes, penalty=args.penalty, C=args.C, learning_rate=args.learning_rate, max_iter=args.epochs)
+        model = LogisticRegressionTF(input_shape, num_classes, penalty=args.penalty, C=args.C, learning_rate=args.learning_rate, max_iter=args.epochs)
     elif args.model == "svm":
-        model = SVMClassifier(input_shape=input_shape, num_classes=num_classes, C=args.C)
+        model = SVMClassifier(input_shape, num_classes, C=args.C)
     elif args.model == "random_forest":
         model = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
     elif args.model == "sci":
-        model = SCI(input_shape=input_shape, num_classes=num_classes)
+        model = SCI(input_shape, num_classes)
     elif args.model == "resnet":
         model = ResNetClassifier(input_shape, num_classes)
     elif args.model == 'inceptionv3':
@@ -127,16 +127,18 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     if operation == "train":
         print(f"Training {args.model}")
     
-        trained_model = train(train_dataset, model,args)
+        trained_model = train(train_dataset, model, args)
         
-        model_path = model_path / str(args.model)
-        with model_path.open('wb') as fp:
-            pickle.dump(trained_model, fp)
+        model_path = model_path / str(args.model + ".keras")
+        model.save(model_path)
+        # with model_path.open('wb') as fp:
+        #     pickle.dump(trained_model, fp)
         
     elif operation == "test":
         # load the model from disk
-        with model_path.open("rb") as fp:
-            loaded_model = pickle.load(fp)
+        loaded_model = tf.keras.models.load_model(model_path)
+        # with model_path.open("rb") as fp:
+        #     loaded_model = pickle.load(fp)
             
         print(f"Testing {args.model}")
         
@@ -154,29 +156,33 @@ if __name__ == "__main__":
     parser.add_argument("dataset_path", type=str, help="Path to the main folder containing the dataset (each subfolder shoud represents the relative class)")
     parser.add_argument("model_path", default = "./", help="Path where to save/load the trained model.")
 
+
     # Subparser for logistic regression model
     logistic_parser = subparsers.add_parser('logistic', help='Logistic Regression Model')
     logistic_parser.add_argument("--penalty",  default="l2", type=str, choices=["l1", "l2", "elasticnet"],help="Regularization strength (C) for logistic regression")
     logistic_parser.add_argument("--learning_rate", default=1e-2, type=float, help="Learning rate for logistic regression")
-    logistic_parser.add_argument("--epochs", default=20, type=float, help="")
+    logistic_parser.add_argument("--epochs", default=20, type=int, help="")
     logistic_parser.add_argument("--C", default=1.0, type=float, help="Inverse of regularization strength; must be a positive float")
     logistic_parser.add_argument("--verbose", default=1, type=int, choices=[0, 1, 2, 3], help="Verbosity level for logistic regression")
     logistic_parser.add_argument("--plot-title", type=str, help="")
 
+
     # Subparser for support vector machine model
     svm_parser = subparsers.add_parser('svm', help='Support Vector Machine Model')
     svm_parser.add_argument("--C", default=1.0, type=float, help="Regularization parameter (C) for support vector machine")
-    svm_parser.add_argument("--epochs", default=20, type=float, help="")
+    svm_parser.add_argument("--epochs", default=20, type=int, help="")
     svm_parser.add_argument("--verbose", default=True, type=bool, help="Verbosity for support vector machine")
     svm_parser.add_argument("--plot-title", type=str, help="")
+
 
     # Subparser for random forest model
     random_forest_parser = subparsers.add_parser('random_forest', help='Random Forest Model')
     random_forest_parser.add_argument("--n_estimators", default=100, type=int, help="Number of trees in the random forest")
     random_forest_parser.add_argument("--max_depth", default=None, type=int, help="Maximum depth of the tree")
-    random_forest_parser.add_argument("--epochs", default=10, type=float, help="")
+    random_forest_parser.add_argument("--epochs", default=10, type=int, help="")
     random_forest_parser.add_argument("--min_samples_split", default=2, type=int, help="Minimum number of samples required to split an internal node")
     random_forest_parser.add_argument("--plot-title", type=str, help="")
+
 
     # Source Camera Identification model
     sci_subparser = subparsers.add_parser("sci", help="Source Camera Identification Model")

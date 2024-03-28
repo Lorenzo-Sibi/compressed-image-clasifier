@@ -38,13 +38,14 @@ class HingeLossLayer(tf.keras.layers.Layer):
     
     
 class SVMClassifier(tf.keras.Model):
-    def __init__(self, input_shape, num_classes, C=1.0, epochs=20, **kwargs):
+    def __init__(self, inp_shape, num_classes, C=1.0, epochs=20, **kwargs):
         super(SVMClassifier, self).__init__(**kwargs)
+        self.inp_shape = inp_shape
         self.num_classes = num_classes
         self.C = C
         self.epochs = epochs
         # Layer setup
-        self.flatten = tf.keras.layers.Flatten(input_shape=input_shape)
+        self.flatten = tf.keras.layers.Flatten(input_shape=self.inp_shape)
         self.dense = tf.keras.layers.Dense(num_classes, use_bias=False)  # Linear kernel
         self.hinge_loss_layer = HingeLossLayer(num_classes, C=self.C)
 
@@ -83,3 +84,17 @@ class SVMClassifier(tf.keras.Model):
     def predict(self, X):
         predictions = self(X, training=False)
         return tf.argmax(predictions, axis=1)
+    
+    def get_config(self):
+        config = super(SVMClassifier, self).get_config()
+        config.update({
+            'inp_shape': self.inp_shape,
+            'num_classes': self.num_classes,
+            'epochs': self.epochs,
+            'C': self.C,
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)

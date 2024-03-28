@@ -30,20 +30,21 @@ class LogisticRegressionWrapper():
     
 
 class LogisticRegressionTF(tf.keras.Model):
-    def __init__(self, input_shape, num_classes, max_iter=10, penalty='l2', C=1.0, learning_rate=1e-2, **kwargs):
+    def __init__(self, inp_shape, num_classes, max_iter=10, penalty='l2', C=1.0, learning_rate=1e-2, **kwargs):
         """
         Initializes the Logistic Regression model as per TensorFlow best practices.
 
         Parameters are similar to the previous version, but adapted for TensorFlow's OO approach.
         """
         super(LogisticRegressionTF, self).__init__(**kwargs)
+        self.inp_shape = inp_shape
         self.num_classes = num_classes
         self.penalty = penalty
         self.C = C
         self.learning_rate = learning_rate
         self.max_iter = max_iter
 
-        self.flatten = tf.keras.layers.Flatten(input_shape=input_shape)
+        self.flatten = tf.keras.layers.Flatten(input_shape=self.inp_shape)
         self.dense = self._get_dense_layer()
 
     def _get_dense_layer(self):
@@ -79,6 +80,22 @@ class LogisticRegressionTF(tf.keras.Model):
     def predict(self, X, batch_size=32):
         predictions = super(LogisticRegressionTF, self).predict(X, batch_size=batch_size)
         return tf.argmax(predictions, axis=-1).numpy()
+    
+    def get_config(self):
+        config = super(LogisticRegressionTF, self).get_config()
+        config.update({
+            'inp_shape': self.inp_shape,
+            'num_classes': self.num_classes,
+            'penalty': self.penalty,
+            'C': self.C,
+            'learning_rate': self.learning_rate,
+            'max_iter': self.max_iter,
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
     
     def print_params(self):
         param_table = param_table = list(
