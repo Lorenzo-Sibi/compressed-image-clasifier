@@ -1,41 +1,5 @@
 import tensorflow as tf
 from tabulate import tabulate
-from sklearn.svm import SVC
-
-class SVCWrapper():
-    def __init__(self, args):
-        self.model = SVC(tol=args.svm_tolerance, verbose=args.verbose, random_state=2)
-    
-    def fit(self, train_set, _):
-        self.model.fit(train_set)
-        
-    def predict(self, X_test):
-        y_pred = self.model.predict(X_test)
-        return y_pred
-        
-    def print_params(self):
-        params = self.model.get_params()
-        param_table = list(params.items())
-        print(tabulate(param_table, headers=["Hyperparameter", "Value"], tablefmt="pretty"))
-        
-class HingeLossLayer(tf.keras.layers.Layer):
-    def __init__(self, num_classes, C=1.0, **kwargs):
-        super(HingeLossLayer, self).__init__(**kwargs)
-        self.num_classes = num_classes
-        self.C = C
-    
-    def call(self, inputs, labels):
-        labels = tf.one_hot(labels, depth=self.num_classes)
-        labels = tf.cast(labels, dtype=inputs.dtype)
-        # Compute the standard hinge loss
-        per_sample_loss = tf.maximum(0., 1. - labels * inputs)
-        # Compute regularization loss
-        regularization_loss = 1/2 * tf.reduce_sum(inputs * inputs)
-        # Combine hinge loss with regularization loss
-        loss = tf.reduce_mean(per_sample_loss) + self.C * regularization_loss
-        self.add_loss(loss)
-        return inputs
-    
     
 class SVMClassifier(tf.keras.Model):
     def __init__(self, inp_shape, num_classes, C=1.0, epochs=20, **kwargs):
