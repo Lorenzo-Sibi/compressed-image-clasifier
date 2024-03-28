@@ -2,8 +2,9 @@ import argparse
 from tabulate import tabulate
 from pathlib import Path
 import numpy as np
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0 = info, 1 = warning, 2 = error, 3 = fatal
 import tensorflow as tf
-import pickle
 from models.logistic_regression import LogisticRegressionTF
 from models.svm import SVMClassifier
 from models.random_forest import RandomForestModel
@@ -130,7 +131,7 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         trained_model = train(train_dataset, model, args)
         
         model_path = model_path / str(args.model + ".keras")
-        model.save(model_path)
+        model.save(model_path, save_format="tf")
         # with model_path.open('wb') as fp:
         #     pickle.dump(trained_model, fp)
         
