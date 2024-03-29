@@ -8,10 +8,12 @@ IMAGE_SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png')
 TENSOR_SUPPORTED_EXTENSIONS = ('.npz')
 
 class DatasetLoader():
-    def __init__(self, main_folder):
+    def __init__(self, main_folder, label_map = None):
         self.main_folder = Path(main_folder)
         self.labels = [folder.name for folder in self.main_folder.iterdir() if folder.is_dir()]
         self.label_map = {label: i for i, label in enumerate(self.labels)}
+        if label_map:
+            self.label_map = label_map
         self.max_shape = self.calculate_max_shape()
         
     def calculate_max_shape(self):

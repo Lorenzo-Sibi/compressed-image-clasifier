@@ -1,5 +1,40 @@
 import tensorflow as tf
 
+"""
+The following methods are used as modifier for tf.data.Dataset .map() method
+"""
+
+def normalize_sample(feature, label):
+    """
+    Normalizes the input feature tensor using mean and standard deviation.
+
+    Args:
+        feature (tf.Tensor): Input feature tensor to be normalized.
+        label: Label associated with the feature tensor.
+
+    Returns:
+        Tuple[tf.Tensor, Any]: Normalized feature tensor and the original label.
+    """
+    mean = tf.math.reduce_mean(feature)
+    std = tf.math.reduce_std(feature)
+    feature = (feature - mean) / std
+    return feature, label
+    
+def flatten_feature(feature, label):
+    """
+    Flattens the input feature tensor into a 1D tensor.
+
+    Args:
+    feature (tf.Tensor): Input feature tensor to be flattened.
+    label: Label associated with the feature tensor.
+
+    Returns:
+    Tuple[tf.Tensor, Any]: Flattened 1D feature tensor and the original label.
+    """
+    flattened_feature = tf.reshape(feature, [-1])
+    return flattened_feature, label
+
+
 def apply_mirror_padding(image, label, target_size=(75, 75)):
     """
     Apply mirror (reflective) padding to an image if its dimensions are smaller than the target size.

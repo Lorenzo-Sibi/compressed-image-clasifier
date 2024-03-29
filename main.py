@@ -1,7 +1,7 @@
 import argparse
 from tabulate import tabulate
 from pathlib import Path
-import numpy as np
+import json
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 0 = info, 1 = warning, 2 = error, 3 = fatal
 import tensorflow as tf
@@ -13,7 +13,7 @@ from models.resnet import ResNetClassifier
 from models.inceptionv3 import InceptionV3Classifier
 from utils.data_loader import DatasetLoader
 
-from utils.data_preprocessing import apply_mirror_padding
+from utils.data_preprocessing import normalize_sample, flatten_feature, apply_mirror_padding
 from utils.evaluation_metrics import ClassificationEvaluator
 
 IMPLEMENTED_MODELS = ['logistic', 'svm', 'random_forest', 'sci', 'resnet', 'inceptionv3']
@@ -23,12 +23,6 @@ tf.random.set_seed(SEED)
 
 def train(train_set, model, args):
     
-    def normalize_sample(feature, label):
-        mean = tf.math.reduce_mean(feature)
-        std = tf.math.reduce_std(feature)
-        feature = (feature - mean) / std
-        return feature, label
-
     train_set = train_set.map(lambda feature, label: normalize_sample(feature, label))
     print("Train data normalized.")
     
@@ -40,23 +34,14 @@ def train(train_set, model, args):
     
     train_set = train_set.batch(32)
     
-    model.fit(train_set, epochs=args.epochs)
-    return model
+    return model.fit(train_set, epochs=args.epochs)
 
 def test(test_set, model, args):
-    def normalize_sample(feature, label):
-        mean = tf.math.reduce_mean(feature)
-        std = tf.math.reduce_std(feature)
-        feature = (feature - mean) / std
-        return feature, label
-
+    
     test_set = test_set.map(lambda feature, label: normalize_sample(feature, label))
     print("Test data normalized.")
     
     if args.model in ("logistic", 'svm', 'random_forest'):
-        def flatten_feature(feature, label):
-            flattened_feature = tf.reshape(feature, [-1])
-            return flattened_feature, label
         test_set = test_set.map(lambda x, y: flatten_feature(x, y))
     
     test_set = test_set.batch(32)
@@ -66,7 +51,7 @@ def test(test_set, model, args):
     results = evaluator.evaluate(test_set, model)
     
     # evaluator.print_metrics()
-    print(tabulate(list(results.items()), headers=["Hyperparameter", "Value"], tablefmt="pretty"))
+    print(tabulate(list(results.items()), headers=["Valuation Metric", "Value"], tablefmt="pretty"))
     evaluator.plot_confusion_matrix(save_path=f"{args.model}_confusion_matrix.png",normalize=False)  # Use normalize=True for a normalized confusion matrix
 
     return results
@@ -79,23 +64,29 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
     operation = args.operation
     dataset_path = args.dataset_path
     model_path = Path(args.model_path)
-    
+
     data_loader = DatasetLoader(dataset_path)
-    
+
     input_shape = data_loader.max_shape
     num_classes = len(data_loader.labels)
-    label_map = data_loader.label_map
     
+    if args.label_map:
+        print("Custom Label Map: ", args.label_map)
+        label_map = json.loads(args.label_map)
+    else:
+        label_map = data_loader.label_map
+
     # Load data
     df = data_loader.load_dataset()
 
     assert args.model in IMPLEMENTED_MODELS, "Model not implemented yet"
-    
+
     if args.model == "logistic":
         model = LogisticRegressionTF(input_shape, num_classes, penalty=args.penalty, C=args.C, learning_rate=args.learning_rate, max_iter=args.epochs)
     elif args.model == "svm":
         model = SVMClassifier(input_shape, num_classes, C=args.C)
     elif args.model == "random_forest":
+        exit(print("NOT IMPLEMENTED YET"))
         model = RandomForestModel(num_estimators=args.n_estimators, max_depth=args.max_depth, min_samples_split=args.min_samples_split)
     elif args.model == "sci":
         model = SCI(input_shape, num_classes)
@@ -103,54 +94,42 @@ def main(args):  # sourcery skip: extract-duplicate-method, extract-method
         model = ResNetClassifier(input_shape, num_classes)
     elif args.model == 'inceptionv3':
         df = df = df.map(lambda image, label: apply_mirror_padding(image, label, target_size=(75, 75)))
-        for features, _ in df.take(1):
-            input_shape = features.shape
         model = InceptionV3Classifier(input_shape, num_classes)
-        
-    
+
+
     model.compile()
-        
-        
+
+
     # Calculate the dataset cardinality
     dataset_size = df.reduce(0, lambda x, _: x + 1).numpy()
     train_size = int(0.8 * dataset_size)  # 80% dei dati per il training set
     test_size = int(dataset_size - train_size)
-    
+
     # Shuffle=False to prevent the process running out of memory during shuffle for each epoch 
     df = df.shuffle(dataset_size, seed=SEED, reshuffle_each_iteration=False)
-    
+
     train_dataset = df.take(train_size)
     test_dataset = df.skip(train_size)
     print(tabulate(list(label_map.items()), headers=["Labels", "Integers values"], tablefmt="pretty"))
     print(f"Total training samples: {train_size}")
     print(f"Total testing samples: {test_size}")
-    
-    if operation == "train":
-        print(f"Training {args.model}")
-    
-        trained_model = train(train_dataset, model, args)
-        
-        model_path = model_path / str(args.model + ".keras")
 
-        model.save(model_path)
-
-        
-        # model.save(model_path)
-        # with model_path.open('wb') as fp:
-        #     pickle.dump(trained_model, fp)
-        
-    elif operation == "test":
+    if operation == "test":
         # load the model from disk
         loaded_model = tf.keras.models.load_model(model_path)
-        # with model_path.open("rb") as fp:
-        #     loaded_model = pickle.load(fp)
-            
+
         print(f"Testing {args.model}")
-        
+
         results = test(test_dataset, loaded_model, args)
-        
-    elif operation == "predict":
-        pass
+
+    elif operation == "train":
+        print(f"Training {args.model}")
+
+        history = train(train_dataset, model, args)
+
+        model_path = model_path / str(f"{args.model}.keras")
+
+        model.save(model_path)
         
 
 if __name__ == "__main__":
@@ -160,6 +139,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest='model', help='Select the model to train/load/evaluate')
     parser.add_argument("dataset_path", type=str, help="Path to the main folder containing the dataset (each subfolder shoud represents the relative class)")
     parser.add_argument("model_path", default = "./", help="Path where to save/load the trained model.")
+    parser.add_argument("--label_map", default=None, type=str, help="")
 
 
     # Subparser for logistic regression model
