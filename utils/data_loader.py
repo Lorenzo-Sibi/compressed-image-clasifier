@@ -1,5 +1,5 @@
 import tensorflow as tf
-import pandas as pd
+import json
 import numpy as np
 from sklearn.model_selection import train_test_split
 from pathlib import Path
@@ -7,16 +7,41 @@ from pathlib import Path
 IMAGE_SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png')
 TENSOR_SUPPORTED_EXTENSIONS = ('.npz')
 
+SEED = 2
+
+class DatasetWrapper():
+    def __init__(self, directory: Path):
+        self.directory = directory
+        self.dataset = tf.data.Dataset.load(str(self.directory))
+        self.metadata_path = directory / 'dataset_metadata.json'
+        self.labels: list[str] = []
+        self.max_shape: tuple[int, int, int] = (0, 0, 0)
+        self.label_map: dict[str, int] = {}
+
+        if not self.metadata_path.exists():
+            raise FileNotFoundError(f"{self.metadata_path} does not exist.")
+        
+        with open(self.metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        # Assegna i valori agli attributi dell'oggetto
+        self.labels = metadata.get('labels', [])
+        self.num_classes = len(self.labels)
+        self.max_shape = tuple(metadata.get('max_shape', (0, 0, 0)))
+        self.label_map = metadata.get('label_map', {})
+        
 class DatasetLoader():
-    def __init__(self, main_folder, label_map = None):
-        self.main_folder = Path(main_folder)
+    def __init__(self, main_folder:Path, label_map = None):
+        self.main_folder = main_folder
         self.labels = [folder.name for folder in self.main_folder.iterdir() if folder.is_dir()]
         self.label_map = {label: i for i, label in enumerate(self.labels)}
         if label_map:
+            if len(label_map) != len(self.labels) or all(isinstance(key, int) for key in label_map.keys()):
+                raise ValueError(f"Wrong label map {label_map}")
             self.label_map = label_map
-        self.max_shape = self.calculate_max_shape()
+        self.max_shape = self._calculate_max_shape()
         
-    def calculate_max_shape(self):
+    def _calculate_max_shape(self):
         max_shape = None
 
         # Iterate through each subfolder in the dataset folder
@@ -38,7 +63,6 @@ class DatasetLoader():
                         raise RuntimeError(f"Error loading {file_path.stem} file: {str(e)}.") from e
                     finally:
                         tensor.close()  # Close the .npz file to free up memory
-
         return max_shape
     
     def load_dataset(self):
@@ -66,34 +90,6 @@ class DatasetLoader():
             
         dataset = tf.data.Dataset.from_generator(generator, output_signature=(tf.TensorSpec(shape=self.max_shape, dtype=tf.float32), tf.TensorSpec(shape=(), dtype=tf.int8)))
         return dataset
-        
-    def load_data(self):
-        data_with_labels = []
-        max_shape = (0,)  # Initialize max shape
-
-        for label in self.labels:
-            folder = self.main_folder / label
-            for file_path in folder.glob('*'):
-                # Assuming the files are numpy arrays
-                numpy_array = DatasetLoader.load_tensor(file_path)
-
-                # Update max shape
-                max_shape = tuple(np.maximum(max_shape, numpy_array.shape))
-
-                data_with_labels.append((numpy_array, label, numpy_array.shape))
-        return data_with_labels, max_shape
-
-    def create_dataset(self):
-        data_with_labels, max_shape = self.load_data()
-        data = []
-        for numpy_array, label, shape in data_with_labels:
-            # Calculate padding dimensions
-            pad_width = [(0, max_dim - cur_dim) if max_dim > cur_dim else (0, 0) for cur_dim, max_dim in zip(shape, max_shape)]
-            
-            # Pad or resize each array to match max_shape
-            padded_array = np.pad(numpy_array, pad_width=pad_width, mode='constant', constant_values=0)
-            data.append({'data': padded_array, 'label': label})
-        return pd.DataFrame(data)
     
     @staticmethod
     def load_tensor(file_path):
@@ -111,7 +107,84 @@ class DatasetLoader():
         except Exception as e:
             print(f"Error loading {file_path.stem} file: {str(e)}.", "\nFile path: ", file_path)
             raise RuntimeError(f"Error loading {file_path.stem} file: {str(e)}.") from e
-      
+
     @staticmethod
-    def split_dataset(df, test_size, shuffle=True, random_state=2):
-        return train_test_split(df, test_size=test_size, shuffle=True, random_state=random_state)
+    def load(input_path:Path)->DatasetWrapper:
+        if not input_path.exists():
+            raise ValueError(f"{str(input_path)} doesn't exists.")
+        ds_wrapper = DatasetWrapper(input_path)
+        return ds_wrapper
+    
+    @staticmethod
+    def save(ds_wrapper, output_path:Path)->None:
+        if not output_path.exists():
+            raise ValueError(f"{str(output_path)} doesn't exists.")
+        
+        ds = ds_wrapper.dataset
+        ds.save(str(output_path))
+        
+        metadata = {
+            attr: getattr(ds_wrapper, attr)
+            for attr in dir(ds_wrapper)
+            if not attr.startswith('_')
+            and not callable(getattr(ds_wrapper, attr))
+            and attr != "directory"
+            and attr != "dataset"
+            and attr != "metadata_path"
+        }
+        
+        metadata_file_path = output_path / "dataset_metadata.json"
+
+        with open(metadata_file_path, "w") as json_file:
+            json.dump(metadata, json_file, indent=4)
+        
+        
+    @staticmethod
+    def create_dataset(input_dir:Path, output_dir:Path, label_map=None):
+        if label_map:
+            label_map = json.loads(label_map)
+        dataset_loader = DatasetLoader(input_dir, label_map=label_map)
+        ds = dataset_loader.load_dataset()
+
+        ds.save(str(output_dir))
+
+        # Construct the metadata dictionary from the dataset object's attributes
+        metadata = {
+            attr: getattr(dataset_loader, attr)
+            for attr in dir(dataset_loader)
+            if not attr.startswith('_')
+            and not callable(getattr(dataset_loader, attr))
+            and attr != "main_folder"
+        }
+        
+        metadata_file_path = output_dir / "dataset_metadata.json"
+
+        with open(metadata_file_path, "w") as json_file:
+            json.dump(metadata, json_file, indent=4)
+
+    @staticmethod
+    def split_dataset(split_parameter:float, input_dir:Path, output_dir:Path, shuffle=True, seed=SEED):
+        assert split_parameter > 0.0 and split_parameter < 1.0,  "Train Size parameter should be >0.0 and <1.0"
+        
+        ds_wrapper = DatasetLoader.load(input_dir)
+        dataset = ds_wrapper.dataset
+        
+        dataset_size = int(dataset.reduce(0, lambda x, _: x + 1).numpy())
+        training_size = int(dataset_size * split_parameter)
+        print(f"Training set size: {training_size}. Test set size: {dataset_size - training_size}")
+        
+        # Shuffle part
+        # reshuffle_each_iteration=False to prevent the process running out of memory during shuffle for each epoch 
+        if shuffle:
+            dataset.shuffle(dataset_size, seed=seed, reshuffle_each_iteration=True)
+        
+        training_set = dataset.take(training_size)
+        test_set = dataset.skip(training_size)
+        
+        print(training_set, test_set)
+        
+        ds_wrapper.dataset = training_set
+        DatasetLoader.save(ds_wrapper, output_dir / f"{output_dir.stem}_training")
+        
+        ds_wrapper.dataset = test_set
+        DatasetLoader.save(ds_wrapper, output_dir / f"{output_dir.stem}_test")
