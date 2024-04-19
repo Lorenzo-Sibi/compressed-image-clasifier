@@ -19,8 +19,6 @@ from utils.evaluation_metrics import ClassificationEvaluator
 IMPLEMENTED_MODELS = ['logistic', 'svm', 'random_forest', 'sci', 'resnet', 'inceptionv3']
 SEED = 2
 
-tf.config.optimizer.set_jit(False)  # Disables XLA JIT compilation
-
 tf.random.set_seed(SEED)
     
 def train(ds_wrapper, args):
