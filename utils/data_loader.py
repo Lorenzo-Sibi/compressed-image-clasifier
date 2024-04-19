@@ -1,7 +1,6 @@
 import tensorflow as tf
 import json
 import numpy as np
-from sklearn.model_selection import train_test_split
 from pathlib import Path
 
 IMAGE_SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png')
